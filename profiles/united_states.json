@@ -1,0 +1,179 @@
+{
+  "basic_info": {
+    "name": "United States",
+    "region": "Northeast, Mid-Atlantic, Southeast, Midwest, Southwest, Northwest, Western United States, New England, Middle Atlantic, South",
+    "population": 331900000
+  },
+  "government": {
+    "government_type": "The United States operates as a constitutional federal republic, established on March 4, 1789. It features a federal system that divides power between the national and state governments, with each state maintaining its own governance structure comprising executive, legislative, and judicial branches. The U.S. political system is heavily influenced by Enlightenment principles, emphasizing democracy and the rule of law, guided by a written constitution that delineates government powers and individual rights. While there are no significant traditional or indigenous governance systems currently influencing national governance, some local governments may reflect indigenous practices. The U.S. also does not have a state religion, ensuring a separation of church and state, although cultural and religious values can impact political discourse and policy-making.",
+    "current_leadership": [
+      "Joseph R. Biden, Jr. - 46th President of the United States, head of state and head of government, in office since January 20, 2021.",
+      "Kamala Harris - Vice President of the United States, first female vice president, in office since January 20, 2021.",
+      "Antony Blinken - Secretary of State, responsible for foreign affairs, in office since January 26, 2021.",
+      "Janet Yellen - Secretary of the Treasury, responsible for economic policy and financial matters, in office since January 26, 2021.",
+      "Lloyd Austin - Secretary of Defense, responsible for military policy and the Department of Defense, in office since January 22, 2021.",
+      "Merrick Garland - Attorney General, head of the Department of Justice, in office since March 11, 2021.",
+      "Deb Haaland - Secretary of the Interior, responsible for managing federal land and natural resources, in office since March 16, 2021.",
+      "Tom Vilsack - Secretary of Agriculture, responsible for policies related to farming and food, in office since March 24, 2021.",
+      "Gina Raimondo - Secretary of Commerce, responsible for promoting economic growth, in office since March 3, 2021."
+    ],
+    "political_ideologies": [
+      "conservatism",
+      "liberalism",
+      "moderate",
+      "social conservatism",
+      "fiscal conservatism",
+      "progressivism",
+      "libertarianism"
+    ]
+  },
+  "historical_context": {
+    "colonial_history": "The colonial history of the United States encompasses the period of European colonization of North America from the early 16th century until the unification of the Thirteen English Colonies and the emergence of the United States as an independent nation. This era saw the establishment of 13 British colonies along the Atlantic coast during the 17th and early 18th centuries, which included notable colonies such as Virginia, Massachusetts, and Pennsylvania. The colonization efforts were motivated by various factors including political, religious, and economic opportunities, leading to significant migration and the expansion of settlements. The arrival of European powers such as England, France, Spain, and the Dutch Republic resulted in a dramatic decline in the Native American population due to conflict and disease. The period culminated in the American Revolutionary War (1775-1781), which led to the incorporation of these colonies into the newly formed United States.",
+    "major_conflicts": [
+      "American Indian Wars",
+      "War of 1812",
+      "Mexican-American War",
+      "American Civil War",
+      "World War I",
+      "World War II",
+      "Korean War",
+      "Vietnam War",
+      "Gulf War (Operation Desert Shield and Desert Storm)",
+      "War in Afghanistan",
+      "Iraq War"
+    ],
+    "evolution_of_foreign_policy": "The evolution of American foreign policy has been marked by significant shifts in response to changing global dynamics and strategic interests. From the foundational Monroe Doctrine of 1823, which established the U.S. position in the Americas, to contemporary policies prioritizing democracy and human rights, U.S. foreign policy has adapted to both national security concerns and moral obligations. The National Security Strategy (NSS) documents serve as blueprints for each administration's priorities, reflecting changes from the Obama administration's emphasis on multilateralism and diplomacy to Trump's America First approach, focusing on unilateral actions and national interests. Under Biden, there has been a renewed commitment to global alliances, particularly in response to challenges posed by Russia and China, with an emphasis on collective security and economic partnerships. Overall, U.S. foreign policy has oscillated between engagement and restraint, with the core strategy often reflecting a need to maintain leadership in key regions while responding to emerging global threats."
+  },
+  "foreign_policy": {
+    "core_goals": [
+      "To build and sustain a more democratic, secure, and prosperous world for the benefit of the American people and the international community.",
+      "Protecting the United States and its citizens by neutralizing and eliminating risks to national security through military force, diplomacy, and information collection.",
+      "Strengthening international institutions like the United Nations as a means of promoting global stability and cooperation.",
+      "Protecting the interests of American businesses abroad to enhance economic growth and competitiveness."
+    ],
+    "alliance_patterns": [
+      "The United States has constructed global networks representing diplomatic, military, and economic elements of national power, indicating a reliance on allies and partners for national security and international cooperation.",
+      "The U.S. emphasizes the importance of its allies and partners in addressing shared global challenges, aiming to build a more open and secure world through sustained partnerships.",
+      "U.S. military participation in bilateral and multilateral maritime exercises with allies demonstrates a commitment to strengthening regional and international cooperation.",
+      "The shift from a hub-and-spokes system to a more networked regional approach illustrates the U.S. efforts to enhance alliances and partnerships in the Indo-Pacific.",
+      "The Biden-Harris administration's focus on restoring bilateral and multilateral alliances reflects a strategy to engage diverse perspectives and contributions in international relations.",
+      "The trilateral AUKUS partnership with Australia and the United Kingdom exemplifies the U.S. commitment to deepening alliances for global security.",
+      "Significant investments in Indo-Pacific alliances are viewed as a key component of the United States' strategy to maintain leadership and counter global challenges.",
+      "The United States maintains a reliable network of alliances and partnerships globally, a strategic advantage over rivals like China, which is rooted in historical contexts post-World War II."
+    ],
+    "global_issue_positions": [
+      "The United States has a crucial role in restoring confidence in democracy globally, particularly in the face of rising authoritarianism.",
+      "There is an ongoing debate in American politics regarding the U.S.'s involvement in international conflicts versus a more isolationist approach."
+    ],
+    "treaties_and_agreements": [
+      "Treaties and Other International Agreements of the United States of America, 1776-1949 (Bevans) includes texts of treaties to which the U.S. was a signatory.",
+      "United States Treaties and Other International Agreements (UST) Vols. 1-35 (1950-1984) provides official primary sources of treaties.",
+      "Treaties and International Act Series (TIAS) includes texts from TIAS 11060 to TIAS 12734."
+    ]
+  },
+  "economic_profile": {
+    "gdp": 25.46,
+    "gdp_unit": "trillion USD",
+    "gdp_year": "2023",
+    "major_industries": [
+      "Finance, Insurance, Real Estate: Contributes the highest amount of value to the GDP and is crucial for the economic stability of the country.",
+      "Retail Trade: Leading contributor to economic growth, driving consumer spending and employment."
+    ],
+    "trade_relations": [
+      "Mexico: The top trading partner in 2022, exchanging nearly $661 billion in goods and services.",
+      "Canada: Second largest trading partner with $664 billion in trade volume."
+    ],
+    "development_goals": [
+      "Accelerating global development: Committed to fully implementing the 2030 Agenda for Sustainable Development.",
+      "Climate resilience strategy: Aiming to achieve net zero carbon emissions by 2030, enhancing sustainability efforts."
+    ]
+  },
+  "cultural_societal": {
+    "cultural_values": [
+      "Diversity: American culture is a dynamic mosaic reflecting a blend of various traditions and values from around the world, shaped by its immigrant history.",
+      "Individualism: The culture celebrates individual rights and freedoms, emphasizing personal responsibility and self-reliance.",
+      "Innovation: American culture values creativity and innovation, often encouraging new ideas and technologies.",
+      "Democracy: Core American values include the belief in democracy, equality, and the opportunity for all individuals to pursue their goals.",
+      "Cultural pluralism: The United States is home to many different cultural groups, each contributing to the overall social fabric and allowing for a variety of customs and practices."
+    ],
+    "public_opinion": "{'trends': [{'topic': 'Legalization of Marijuana', 'historical_trend': {'1969': '12% supported legalization', '1996': 'States began legalizing for medical purposes', '2012': 'States began legalizing for recreational purposes'}, 'current_attitude': 'Support for legalization has increased significantly over the years.'}, {'topic': 'Top Issues Facing the U.S.', 'current_concerns': ['Illegal immigration (51%)', 'Gun violence (49%)', 'Violent crime (48%)', 'State of moral values (46%)'], 'lower_priority_issues': ['Quality of public K-12 schools', 'Climate change', 'International terrorism']}, {'topic': 'Chronic Absenteeism in Schools', 'current_attitude': {'general_view': 'Majority of Americans see it as a significant problem.', 'statistics': 'Three in five Americans recognize chronic absenteeism as a major issue.'}}, {'topic': 'Nuclear Power', 'current_attitude': {'general_view': 'Public sentiment is warming towards nuclear energy.', 'concerns': ['Waste management', 'Cost', 'Safety']}}, {'topic': 'Social Acceptance', 'current_trends': {'general_view': 'There is an impression that animus and hostility have overtaken acceptance and tolerance in societal attitudes.'}}]}",
+    "communication_style": "In the United States, communication is typically direct and to the point, emphasizing clarity and transparency. Americans value self-expression and often focus on personal achievements and goals in their interactions. There is a strong appreciation for directness in professional and business settings, where indirect communication may be perceived as confusing or evasive. Balancing honesty with diplomacy is crucial, especially in public diplomacy and international relations. Additionally, the U.S. communication style is influenced by its cultural diversity, where various cultural norms may affect interpersonal interactions. Negotiation is often framed as a series of structured steps towards a mutually acceptable outcome, highlighting the importance of mediation, dialogue, and the ability to manage conflicts effectively. Overall, U.S. communication is characterized by an emphasis on individualism, pragmatism, and a proactive approach to resolving disputes."
+  },
+  "diplomatic_behavior": {
+    "style": "The United States employs a modernized approach to diplomacy that emphasizes collaboration, innovation, and addressing global challenges through partnerships. The focus is on advancing democratic values and maintaining security through a proactive engagement strategy.",
+    "negotiation_tactics": [
+      "Team-based negotiations where diverse expertise is leveraged to tackle complex issues, enhancing the chance of reaching mutually beneficial agreements.",
+      "Utilization of third-party mediators to facilitate negotiations, particularly in high-stakes scenarios, ensuring that all voices are heard and that the process remains constructive."
+    ],
+    "decision_making_process": "Decisions are typically made through a combination of extensive consultations with stakeholders, both domestic and international. The process involves gathering input from various departments, experts, and allies to ensure that different perspectives are considered before arriving at a consensus.",
+    "short_term_objectives": [
+      "Preventing terrorist attacks and keeping illegal drugs out of the country.",
+      "Addressing immediate foreign policy crises and stabilizing relationships with key allies."
+    ],
+    "long_term_vision": [
+      "Building and sustaining a democratic, secure, and prosperous world for the benefit of the American people and the international community.",
+      "Enhancing global partnerships to tackle transnational challenges such as climate change and economic instability."
+    ]
+  },
+  "strategic_interests": {
+    "security_concerns": [
+      "The United States plans to ban Russian and Chinese software and hardware in vehicles due to national security concerns. This indicates a growing apprehension about the potential risks associated with foreign technology infiltrating critical infrastructure.",
+      "The U.S. intelligence community has warned of increasing threats from nation-state actors such as China, Russia, North Korea, and Iran, which could lead to significant national security challenges, particularly in the context of global competition and regional conflicts.",
+      "The Department of Homeland Security's 2024 threat assessment highlights concerns about both domestic and foreign terrorism, suggesting an urgent need for heightened vigilance and preparedness against various forms of attacks.",
+      "The Arctic region has emerged as a critical area for global security, with Russia's aggressive actions prompting the U.S. and NATO to consider strategic responses to ensure stability and deter potential threats.",
+      "Artificial intelligence is becoming central to both U.S. security and economic strategy, with the need for decisive actions to lead in this technological space being emphasized to maintain a competitive edge."
+    ],
+    "economic_interests": [
+      "Strengthening economic relations with Africa: The U.S. aims to enhance its economic partnerships with African nations, recognizing the strategic importance of these relationships for trade, investment, and energy security.",
+      "Maintaining competitive advantage against China: The U.S. is engaged in strategic competition with China, focusing on economic, technological, and military strengths to ensure its interests are protected globally.",
+      "Promoting sustainable economic development: The U.S. is committed to addressing global challenges, such as climate change, through investments in clean energy and sustainable practices, which are essential for long-term economic security.",
+      "Supporting global food security: The U.S. continues to lead efforts to combat food insecurity worldwide, investing significantly in programs aimed at boosting food production and providing critical aid to alleviate humanitarian needs.",
+      "Enhancing foreign direct investment: The U.S. government is focused on attracting foreign direct investments to stimulate economic growth and job creation, which are vital for maintaining its economic leadership."
+    ],
+    "cultural_ideological_promotion": [
+      "Cultural diplomacy is a key aspect of U.S. foreign policy, enhancing mutual understanding and showcasing American diversity.",
+      "The promotion of educational and cultural affairs, including welcoming international students, strengthens U.S. global ties.",
+      "Soft power, through cultural exports like music and art, enhances the U.S.'s influence and fosters positive international relationships.",
+      "Involvement in global public affairs and cultural exchanges helps to build international partnerships and address global challenges.",
+      "The U.S. leverages its cultural identity to promote ideals of democracy and individualism worldwide."
+    ]
+  },
+  "relationships_alliances": {
+    "past_alliances": [
+      "NATO (North Atlantic Treaty Organization): A military alliance formed in 1949, consisting of the United States and various European countries, aimed at collective defense and mutual security against potential aggressors.",
+      "ANZUS (Australia, New Zealand, United States Security Treaty): A security alliance established in 1951, emphasizing cooperation in the Pacific region."
+    ],
+    "rivalries_conflicts": [
+      "U.S.-China Trade War: An ongoing economic conflict characterized by tariffs and trade barriers, affecting global supply chains and economic relations.",
+      "U.S.-Russia tensions: Heightened since the annexation of Crimea in 2014, with ongoing disputes over military actions and influence in Eastern Europe."
+    ],
+    "diplomatic_reputation": "The United States maintains a complex diplomatic standing, characterized by strong alliances, but it faces challenges to its credibility due to recent foreign policy decisions and the perception of its leadership role on the global stage. Efforts to reinforce partnerships and address international crises are ongoing, as the U.S. seeks to adapt to a multipolar world."
+  },
+  "memory_seeds": {
+    "previous_resolutions": [
+      "The United States delivered an explanation of position on behalf of the United States regarding the resolution on the UN Convention Against Cybercrime, which establishes a framework for international cooperation to combat cybercrime while preventing its misuse to enable an ever-growing trend of restrictions.",
+      "The United States welcomed the General Assembly resolution on oceans and the law of the sea, as well as the resolution on sustainable fisheries, highlighting the importance of addressing ocean and fisheries issues through these resolutions.",
+      "The United States expressed its commitment to the consensus adoption of the U.S.-led resolution on Artificial Intelligence by the UN General Assembly, which aims to define a global consensus on safe, secure, and trustworthy AI systems for advancing sustainable development.",
+      "The United States thanked the facilitator for efforts in guiding the resolution on global climate change, emphasizing actions to tackle the climate crisis at home and abroad to avoid catastrophic impacts.",
+      "The United States joined other countries in adopting a resolution on plastic pollution at the UN Environmental Assembly meeting, launching a process to develop a legally binding instrument on plastic pollution to conclude negotiations by 2024.",
+      "The United States remains committed to a diplomatic resolution to the challenges posed by the Democratic People's Republic of Korea's unlawful WMD and ballistic missile programs.",
+      "The United States commemorated 175 years of diplomatic relations with the Republic of Guatemala, marking significant historical ties.",
+      "The United States stands ready to work with Security Council members and the African Union to determine how the remaining budget would be financed under the renewed mandate of a UN Security Council resolution."
+    ],
+    "memorable_events": [
+      "July 4, 1776: The Declaration of Independence was adopted, marking the birth of the United States as a nation.",
+      "April 21, 1898: President McKinley requested Congress to declare war against Spain, leading to the Spanish-American War and significant territorial gains for the U.S.",
+      "April 6, 1917: The U.S. entered World War I, significantly influencing the outcome of the war and shaping international relations.",
+      "September 11, 2001: Terrorist attacks on the World Trade Center and the Pentagon led to significant changes in U.S. national security and foreign policy.",
+      "December 7, 1941: The attack on Pearl Harbor prompted the United States to enter World War II, marking a turning point in the conflict."
+    ],
+    "alliances_and_deals": [
+      "United States and Armenia signed a Strategic Partnership Charter, enhancing cooperation in various fields including economic ties and defense.",
+      "United States and Kenya committed to finalizing a U.S.-Kenya Strategic Trade and Investment Partnership agreement by the end of the year.",
+      "United States and UAE announced initiatives under the Clean Energy (PACE) partnership to accelerate clean energy solutions.",
+      "United States and India reaffirmed their Comprehensive Global and Strategic Partnership, focusing on mutual interests and regional stability.",
+      "United States and Thailand are set to establish a new Civil Nuclear Cooperation Agreement to enhance bilateral cooperation in nuclear energy.",
+      "United States and Turkey signed a Trade and Investment Framework Agreement, promoting trade relations and economic cooperation."
+    ]
+  }
+}
