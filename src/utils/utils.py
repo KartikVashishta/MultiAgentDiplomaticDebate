@@ -3,8 +3,6 @@ import time
 from typing import List, Dict, Any, Tuple, Optional
 from duckduckgo_search.exceptions import DuckDuckGoSearchException
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
-from models.country_profile import BasicInfo
-
 
 REGION_DEFAULTS = {
     "Africa": {
@@ -63,34 +61,6 @@ def format_gdp(gdp_value: float, unit: str = None, year: Optional[str] = None) -
     if year:
         return f"{gdp_value:.2f} {unit} ({year})"
     return f"{gdp_value:.2f} {unit}"
-
-
-def get_cultural_queries(country_name: str, basic_info: Optional[BasicInfo] = None) -> List[str]:
-    """Generate queries for cultural information based on country and region."""
-    region = basic_info.region if basic_info else ""
-    base_queries = [
-        f"{country_name} cultural values and traditions",
-        f"{country_name} social norms and customs",
-        f"{country_name} cultural identity"
-    ]
-    
-    if "Africa" in region:
-        base_queries.extend([
-            f"Tribal traditions in {country_name}",
-            f"Indigenous customs in {country_name}"
-        ])
-    elif "Asia" in region:
-        base_queries.extend([
-            f"Confucian values in {country_name}",
-            f"Buddhist influence in {country_name}"
-        ])
-    elif "Middle East" in region:
-        base_queries.extend([
-            f"Islamic traditions in {country_name}",
-            f"Religious customs in {country_name}"
-        ])
-    
-    return base_queries
 
 def gather_snippets_and_links(
     search_tool: DuckDuckGoSearchAPIWrapper,

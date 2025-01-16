@@ -290,7 +290,10 @@ SECURITY_PROMPT = PromptTemplate.from_template(
     "If the snippets are empty or insufficient, use your knowledge to generate plausible information.\n\n"
     "Format your response as a valid JSON object like this:\n"
     "{{\n"
-    "  \"concerns\": [\"concern 1 with context\", \"concern 2 with context\"]\n"
+    "  \"concerns\": [\n"
+    "    \"First security concern with context\",\n"
+    "    \"Second security concern with context\"\n"
+    "  ]\n"
     "}}\n"
     "IMPORTANT: Return ONLY the JSON object with proper formatting and quotes."
 )

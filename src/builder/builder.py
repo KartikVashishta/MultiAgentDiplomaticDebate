@@ -1,21 +1,20 @@
-import os, json
-from concurrent.futures import ThreadPoolExecutor
-import concurrent.futures
+import os
+import json
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 
-from models.country_profile import (
+from src.models import (
     CountryProfile, BasicInfo, Government, HistoricalContext, ForeignPolicy, 
     EconomicProfile, CulturalSocietal, DiplomaticBehavior, StrategicInterests, 
     RelationshipsAndAlliances, MemorySeeds
 )
-from models.utils.validator import ProfileValidator
-from models.utils.utils import (
+from src.validator import ProfileValidator
+from src.utils import (
     get_region_defaults, format_gdp, gather_snippets_and_links, clean_json_response
 )
-from prompts import (
+from src.prompts import (
     PROFILE_VALIDATOR_PROMPT, BASIC_INFO_PROMPT, GOVERNMENT_TYPE_PROMPT, LEADERSHIP_PROMPT, 
     IDEOLOGIES_PROMPT, COLONIAL_HISTORY_PROMPT, MAJOR_CONFLICTS_PROMPT, FOREIGN_POLICY_PROMPT,
     CORE_GOALS_PROMPT, ALLIANCE_PROMPT, GLOBAL_ISSUES_PROMPT, TREATIES_PROMPT,
@@ -39,7 +38,7 @@ def print_yellow(msg):
 
 load_dotenv()
 
-PROFILE_DIR = os.path.join(os.getcwd(), "profiles")
+PROFILE_DIR = os.path.join(os.getcwd(), "data", "country_profiles")
 os.makedirs(PROFILE_DIR, exist_ok=True)
 
 def CountryProfileBuilder(country_name: str) -> CountryProfile:
@@ -926,10 +925,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
     
 def __main__():
     countries = [
-        "India", "United States", "China", "Russia", "Japan", 
-        "Germany", "France", "United Kingdom", "Italy", "Spain", 
-        "Canada", "Australia", "Brazil", "Argentina", "Chile", 
-        "Peru", "Colombia"
+        "Italy"
     ]
     
     print_yellow(f"[INFO] Starting sequential profile generation for {len(countries)} countries")
