@@ -7,3 +7,4 @@ langchain-core
 json
 colorama
 agentscope
+openai

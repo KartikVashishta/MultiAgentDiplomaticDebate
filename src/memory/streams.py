@@ -3,6 +3,7 @@ from agentscope.message import Msg
 
 from src.builder.builder import CountryProfileBuilder
 from src.prompts.strategic_analysis_prompt import STRATEGIC_ANALYSIS_PROMPT
+from src.utils.utils import print_green
 
 from dataclasses import dataclass
 
@@ -33,7 +34,7 @@ class DiplomaticMemoryStream:
         self.general_memory.add(
             Msg(
                 name=f"{country_name} General Knowledge",
-                content = CountryProfileBuilder(country_name),
+                content = CountryProfileBuilder(country_name).model_dump(),
                 role="system"
             )
         )
@@ -69,11 +70,28 @@ class DiplomaticMemoryStream:
         )
 
         self.debate_memory.add(opposition_country_position)
-
+        print_green(f"{self.country_name} strategizing...")
         self.strategy_memory.add(
             Msg(
                 name=f"{self.country_name} Strategy",
                 content=prompt,
-                role="strategist"
+                role="system"
             )
         )
+    
+    def __repr__(self):
+        general_memory = self.general_memory.get_memory(recent_n=1)[0]
+        return f"""
+        DiplomaticMemoryStream(
+            country name: {self.country_name},
+            general memory: {general_memory},
+            debate memory: {self.debate_memory},
+            strategy memory: {self.strategy_memory}),
+            Messages in general memory: {len(self.general_memory.get_memory())}
+            Messages in debate memory: {len(self.debate_memory.get_memory())}
+            Messages in strategy memory: {len(self.strategy_memory.get_memory())}
+        )
+        """
+    
+    def __str__(self):
+        return self.__repr__()

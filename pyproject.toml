@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "debate_simulation"
+version = "0.1.0"
+description = "A diplomatic debate simulation system"
+requires-python = ">=3.8"
+
+[tool.setuptools]
+packages = ["src"]
+package-dir = {"" = "."}
+
+[tool.pytest.ini_options]
+pythonpath = ["."] 
