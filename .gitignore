@@ -1,3 +1,8 @@
+# Python virtual environment
+venv/
 .env
+.venv/
+__pycache__/
+.vscode/
 .DS_Store
-__pycache__
+

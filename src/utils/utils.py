@@ -1,8 +1,21 @@
 import json
+import os
 import time
 from typing import List, Dict, Any, Tuple, Optional
 from duckduckgo_search.exceptions import DuckDuckGoSearchException
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+from colorama import init as colorama_init
+
+colorama_init(autoreset=True)
+
+def print_green(msg): 
+    print("\033[92m" + msg + "\033[0m")
+
+def print_yellow(msg): 
+    print("\033[93m" + msg + "\033[0m")
+
+MODEL_NAME = "gpt-4o-mini"
+SMART_MODEL_NAME = "gpt-4o"
 
 REGION_DEFAULTS = {
     "Africa": {
@@ -119,4 +132,6 @@ def clean_json_response(response: str) -> str:
             response = response[start_idx:end_idx]
         return response
     except Exception:
-        return response 
+        return response
+
+PROFILE_DIR = os.path.join(os.getcwd(), "data", "country_profiles") 

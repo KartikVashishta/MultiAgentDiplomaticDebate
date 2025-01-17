@@ -12,7 +12,8 @@ from src.models import (
 )
 from src.validator import ProfileValidator
 from src.utils import (
-    get_region_defaults, format_gdp, gather_snippets_and_links, clean_json_response
+    get_region_defaults, format_gdp, gather_snippets_and_links, clean_json_response, 
+    print_green, print_yellow, MODEL_NAME, SMART_MODEL_NAME, PROFILE_DIR
 )
 from src.prompts import (
     PROFILE_VALIDATOR_PROMPT, BASIC_INFO_PROMPT, GOVERNMENT_TYPE_PROMPT, LEADERSHIP_PROMPT, 
@@ -27,31 +28,29 @@ from src.prompts import (
     BACKUP_CULTURAL_VALUES_PROMPT_GENERATE
 )
 
-from colorama import init as colorama_init
-colorama_init(autoreset=True)
-
-def print_green(msg): 
-    print("\033[92m" + msg + "\033[0m")
-
-def print_yellow(msg): 
-    print("\033[93m" + msg + "\033[0m")
 
 load_dotenv()
 
-PROFILE_DIR = os.path.join(os.getcwd(), "data", "country_profiles")
+
 os.makedirs(PROFILE_DIR, exist_ok=True)
 
 def CountryProfileBuilder(country_name: str) -> CountryProfile:
     profile_path = os.path.join(PROFILE_DIR, f"{country_name.lower().replace(' ', '_')}.json")
+
     if os.path.isfile(profile_path):
         print_green(f"[INFO] Found existing profile for {country_name}, loading")
-        with open(profile_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        return CountryProfile(**data)
-    
-    print_yellow(f"[INFO] No existing profile found for {country_name}, building new profile")
+        try:
+            with open(profile_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                print_green(f"[SUCCESS] {country_name} has been added to the memory")
+                return CountryProfile(**data)
+        except Exception as e:
+            print_yellow(f"[ERROR] Profile for {country_name} found but failed to load: {e}, building new profile")
+            pass
+    else:
+        print_yellow(f"[INFO] {country_name} not found in memory, building new profile")
 
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+    llm = ChatOpenAI(model=MODEL_NAME, temperature=0.7)
     search_tool = DuckDuckGoSearchAPIWrapper()
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -89,7 +88,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
         region=region,
         population=int(population) if (population and str(population).isdigit()) else None
     )
-    print_green(f"[BASIC INFO] found")
+    print_green(f"[BASIC INFO] found for {country_name}")
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # 2) GOVERNMENT (government_type, current_leadership, political_ideologies)
@@ -142,7 +141,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
         current_leadership=current_leadership,
         political_ideologies=political_ideologies
     )
-    print_green(f"[GOVERNMENT] found")
+    print_green(f"[GOVERNMENT] found for {country_name}")
     
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # 3) HISTORICAL CONTEXT (colonial_history, major_conflicts, evolution_of_foreign_policy)
@@ -194,7 +193,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
         major_conflicts=major_conflicts,
         evolution_of_foreign_policy=evolution_of_foreign_policy
     )
-    print_green(f"[HISTORICAL CONTEXT] found")
+    print_green(f"[HISTORICAL CONTEXT] found for {country_name}")
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # 4) FOREIGN POLICY (core_goals, alliance_patterns, global_issue_positions, treaties_and_agreements)
@@ -259,7 +258,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
         global_issue_positions=global_issue_positions,
         treaties_and_agreements=treaties_and_agreements
     )
-    print_green(f"[FOREIGN POLICY] found")
+    print_green(f"[FOREIGN POLICY] found for {country_name}")
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # 5) ECONOMIC PROFILE (gdp, major_industries, trade_relations, development_goals)
@@ -404,7 +403,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
         trade_relations=trade_relations,
         development_goals=development_goals
     )
-    print_green(f"[ECONOMIC PROFILE] found")
+    print_green(f"[ECONOMIC PROFILE] found for {country_name}")
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # 6) CULTURAL & SOCIETAL
@@ -510,7 +509,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
         public_opinion=public_opinion,
         communication_style=communication_style
     )
-    print_green(f"[CULTURAL & SOCIETAL] found")
+    print_green(f"[CULTURAL & SOCIETAL] found for {country_name}")
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # 7) DIPLOMATIC BEHAVIOR
@@ -604,7 +603,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
         short_term_objectives=short_term_objectives,
         long_term_vision=long_term_vision
     )
-    print_green(f"[DIPLOMATIC BEHAVIOR] found")
+    print_green(f"[DIPLOMATIC BEHAVIOR] found for {country_name}")
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # 8) STRATEGIC INTERESTS with improved prompt and backup
@@ -696,7 +695,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
         economic_interests=economic_interests,
         cultural_ideological_promotion=cultural_promotion
     )
-    print_green(f"[STRATEGIC INTERESTS] found")
+    print_green(f"[STRATEGIC INTERESTS] found for {country_name}")
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # 9) RELATIONSHIPS & ALLIANCES with improved prompt and backup
@@ -777,7 +776,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
         rivalries_conflicts=rivalries_conflicts,
         diplomatic_reputation=diplomatic_reputation
     )
-    print_green(f"[RELATIONSHIPS & ALLIANCES] found")
+    print_green(f"[RELATIONSHIPS & ALLIANCES] found for {country_name}")
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # 10) MEMORY SEEDS with improved prompt and backup
@@ -888,7 +887,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
         memorable_events=memorable_events,
         alliances_and_deals=alliances_and_deals
     )
-    print_green(f"[MEMORY SEEDS] found: Resolutions: {len(previous_resolutions)}, Events: {len(memorable_events)}, Deals: {len(alliances_and_deals)}")
+    print_green(f"[MEMORY SEEDS] found for {country_name}")
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # CountryProfile
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -910,7 +909,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     print_green(f" {'-'*20} [VALIDATING] {'-'*20} ")
 
-    validator = ProfileValidator(model_name="gpt-4o", temperature=0.2)
+    validator = ProfileValidator(model_name=SMART_MODEL_NAME, temperature=0.2)
     profile, _ = validator.validate(
         model=profile,
         prompt_template=PROFILE_VALIDATOR_PROMPT,
@@ -920,7 +919,7 @@ def CountryProfileBuilder(country_name: str) -> CountryProfile:
     )
 
     print_green(f" {'-'*20} [VALIDATED] {'-'*20} ")
-
+    print_green(f"[SUCCESS] {country_name} has been added to the memory")
     return profile
     
 def __main__():
@@ -928,7 +927,6 @@ def __main__():
         "Italy"
     ]
     
-    print_yellow(f"[INFO] Starting sequential profile generation for {len(countries)} countries")
     
     completed_profiles = []
     failed_countries = []

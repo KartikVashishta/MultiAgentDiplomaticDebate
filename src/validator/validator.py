@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from langchain_openai import ChatOpenAI
 
 class ProfileValidator:
-    def __init__(self, model_name: str = "gpt-4o", temperature: float = 0.5, max_tokens: int = 8000):
+    def __init__(self, model_name: str, temperature: float = 0.5, max_tokens: int = 8000):
         self.llm = ChatOpenAI(
             model=model_name,
             temperature=temperature,
