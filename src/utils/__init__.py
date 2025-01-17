@@ -8,7 +8,9 @@ from .utils import (
     print_green,
     print_yellow,
     MODEL_NAME,
-    SMART_MODEL_NAME
+    SMART_MODEL_NAME,
+    MODEL_CONFIG,
+    BASIC_MODEL_CONFIG
 )
 
 __all__ = [
@@ -21,5 +23,7 @@ __all__ = [
     'print_green',
     'print_yellow',
     'MODEL_NAME',
-    'SMART_MODEL_NAME'
+    'SMART_MODEL_NAME',
+    'MODEL_CONFIG',
+    'BASIC_MODEL_CONFIG'
 ]

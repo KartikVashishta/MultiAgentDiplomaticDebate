@@ -1,10 +1,6 @@
 langchain-openai
 langchain-community
 langchain-core
-langchain-openai
-langchain-community
-langchain-core
-json
 colorama
 agentscope
 openai

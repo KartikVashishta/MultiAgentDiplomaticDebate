@@ -1,9 +1,11 @@
 from agentscope.memory import TemporaryMemory
 from agentscope.message import Msg
+from agentscope.models import OpenAIChatWrapper
+from agentscope.parsers import MarkdownJsonDictParser
 
 from src.builder.builder import CountryProfileBuilder
 from src.prompts.strategic_analysis_prompt import STRATEGIC_ANALYSIS_PROMPT
-from src.utils.utils import print_green
+from src.utils.utils import print_green, BASIC_MODEL_CONFIG
 
 from dataclasses import dataclass
 
@@ -53,28 +55,36 @@ class DiplomaticMemoryStream:
                 - name: The name of the opposition country
                 - content: Their diplomatic statement
                 - role: Their role in the diplomatic exchange
-
-        Example:
-            >>> memory_stream = DiplomaticMemoryStream("United States")
-            >>> opposition_msg = Msg(
-            ...     name="China",
-            ...     content="We firmly oppose unilateral actions...",
-            ...     role="diplomat"
-            ... )
-            >>> memory_stream.add(opposition_msg)
         """
         prompt = STRATEGIC_ANALYSIS_PROMPT.format(
             country_name=self.country_name,
             opposition_statement=opposition_country_position.content,
             opposition_country=opposition_country_position.name
         )
+        
+        
+        parser = MarkdownJsonDictParser(
+            content_hint='{"quick_analysis": "Brief assessment", "identified_intentions": ["intentions"], "potential_risks": ["risks"], "recommended_approach": {"tone": "tone", "key_points": ["points"], "leverage_points": ["points"]}, "long_term_considerations": ["considerations"]}',
+            keys_to_memory=["quick_analysis", "identified_intentions", "potential_risks", "recommended_approach", "long_term_considerations"],
+            keys_to_content=None
+        )
+        
+        messages = [
+            {"role": "system", "content": "You are a strategic advisor. Analyze the diplomatic statement and provide a structured JSON response."},
+            {"role": "user", "content": prompt}
+        ]
+        
+        model = OpenAIChatWrapper(**BASIC_MODEL_CONFIG)
+        response = model(messages=messages)
 
+        parsed_response = parser.parse(response)
+        
         self.debate_memory.add(opposition_country_position)
-        print_green(f"{self.country_name} strategizing...")
+        print_green(f"[INFO]: {self.country_name} strategizing")
         self.strategy_memory.add(
             Msg(
                 name=f"{self.country_name} Strategy",
-                content=prompt,
+                content=parsed_response.parsed,
                 role="system"
             )
         )
