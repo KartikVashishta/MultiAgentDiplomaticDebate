@@ -6,3 +6,7 @@ __pycache__/
 .vscode/
 .DS_Store
 
+# File structure
+file_structure.txt
+file_structure.py
+

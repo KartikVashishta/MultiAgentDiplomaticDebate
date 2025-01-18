@@ -1,15 +1,13 @@
 from typing import Union, List, Dict, Any, Optional
 from agentscope.message import Msg
 from agentscope.models import OpenAIChatWrapper
-from agentscope.parsers import MarkdownJsonDictParser
 from agentscope.agents import DialogAgent
-
 
 from src.memory.streams import DiplomaticMemoryStream
 from src.agents.diplomatic_response_validator import DiplomaticResponseValidator
 from src.utils.utils import BASIC_MODEL_CONFIG
 from src.prompts import COUNTRY_INITIALIZATION_PROMPT
-
+from src.parsers.parsers import CountryParser
 
 class CountryAgent(DialogAgent):
     def __init__(self, country_name: str, model_config: Optional[Dict[str, Any]] = BASIC_MODEL_CONFIG):
@@ -23,12 +21,7 @@ class CountryAgent(DialogAgent):
 
         self.memory_stream = DiplomaticMemoryStream(country_name)
         self.model = OpenAIChatWrapper(**model_config)
-        self.parser = MarkdownJsonDictParser(
-            content_hint='{"thought": "internal analysis", "diplomatic_response": "official statement", "key_points": ["main points"], "strategic_alignment": "alignment explanation"}',
-            keys_to_memory=["thought", "diplomatic_response", "key_points", "strategic_alignment"],
-            keys_to_content="diplomatic_response",
-            keys_to_metadata=["key_points", "strategic_alignment"]
-        )
+        self.parser = CountryParser
         self.validator = DiplomaticResponseValidator(country_name)
 
     def __call__(self, msg: Optional[Msg] = None) -> Msg:
@@ -37,8 +30,7 @@ class CountryAgent(DialogAgent):
         return self.reply(msg)
 
     def observe(self, msg: Msg) -> None:
-        isForeign = msg.name != self.country_name
-        self.memory_stream.add(msg, include_strategy=isForeign)
+        self.memory_stream.add(msg)
 
     def reply(self, incoming_msg: Optional[Msg] = None) -> Msg:
         response = self.model(messages = self._construct_prompt(incoming_msg))
@@ -90,7 +82,14 @@ class CountryAgent(DialogAgent):
             for msg in strategy_memory:
                 content = msg.content
                 if isinstance(content, dict):
-                    strategy_text.append(f"Previous Analysis:\n- Internal Thoughts: {content.get('thought', '')}\n- Key Points: {', '.join(content.get('key_points', []))}\n- Strategic Alignment: {content.get('strategic_alignment', '')}")
+                    strategy_text.append(
+                    f"Previous Analysis:\n"
+                    f"- Quick Analysis: {content.get('quick_analysis', '')}\n"
+                    f"- Identified Intentions: {', '.join(content.get('identified_intentions', []))}\n"
+                    f"- Potential Risks: {', '.join(content.get('potential_risks', []))}\n"
+                    f"- Recommended Approach: {content.get('recommended_approach', {})}\n"
+                    f"- Long Term Considerations: {', '.join(content.get('long_term_considerations', []))}"
+                )
                 else:
                     strategy_text.append(str(content))
             

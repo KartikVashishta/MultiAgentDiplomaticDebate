@@ -26,7 +26,7 @@ def test_diplomatic_memory_stream_add_message(stream):
     assert len(stream.strategy_memory.get_memory()) == 1
     assert stream.debate_memory.get_memory()[0] == opposition_country_position
     print(f"Strategy memory: {stream.strategy_memory.get_memory()[0]}")
-    assert stream.strategy_memory.get_memory()[0].name == "United States Strategy"
+    assert stream.strategy_memory.get_memory()[0].name == "united_states_strategy"
     assert stream.strategy_memory.get_memory()[0].role == "system"
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def test_diplomatic_memory_stream_add_message_with_new_country(stream_with_new_c
     stream_with_new_country.add(opposition_country_position)
     assert len(stream_with_new_country.debate_memory.get_memory()) == 1
     assert len(stream_with_new_country.strategy_memory.get_memory()) == 1
-    assert stream_with_new_country.strategy_memory.get_memory()[0].name == "Germany Strategy"
+    assert stream_with_new_country.strategy_memory.get_memory()[0].name == "germany_strategy"
     assert stream_with_new_country.strategy_memory.get_memory()[0].role == "system"
 
 pytest.main([__file__])

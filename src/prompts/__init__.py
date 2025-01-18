@@ -34,8 +34,11 @@ from .country_builder_prompt import (
 )
 from .strategic_analysis_prompt import STRATEGIC_ANALYSIS_PROMPT
 from .country_initialization_prompt import COUNTRY_INITIALIZATION_PROMPT
-from .diplomatic_response_prompt import (
-    VALIDATE_DIPLOMATIC_PROTOCOL_PROMPT,
+from .diplomatic_response_prompt import VALIDATE_DIPLOMATIC_PROTOCOL_PROMPT
+from .judge_prompt import (
+    JUDGE_INITIALIZATION_PROMPT,
+    JUDGE_EVALUATION_PROMPT,
+    JUDGE_VERDICT_PROMPT
 )
 
 __all__ = [
@@ -74,4 +77,7 @@ __all__ = [
     'STRATEGIC_ANALYSIS_PROMPT',
     'COUNTRY_INITIALIZATION_PROMPT',
     'VALIDATE_DIPLOMATIC_PROTOCOL_PROMPT',
+    'JUDGE_INITIALIZATION_PROMPT',
+    'JUDGE_EVALUATION_PROMPT',
+    'JUDGE_VERDICT_PROMPT'
 ]

@@ -1,34 +1,38 @@
 from agentscope.message import Msg
 from agentscope.models import OpenAIChatWrapper
-from agentscope.parsers import MarkdownJsonDictParser
 from agentscope.models import ModelResponse
 
 from src.utils.utils import BASIC_MODEL_CONFIG
 from src.prompts import VALIDATE_DIPLOMATIC_PROTOCOL_PROMPT
+from src.parsers.parsers import ResponseValidatorParser, CountryParser
 
+from typing import Union
 
 class DiplomaticResponseValidator:
 
     def __init__(self, country_name: str):
         self.country_name = country_name
         self.model = OpenAIChatWrapper(**BASIC_MODEL_CONFIG)
-        self.parser = MarkdownJsonDictParser(
-            content_hint='{"validated_response": "response", "validation_notes": ["notes"]}',
-            keys_to_memory=["validation_notes"],
-            keys_to_content="validated_response"
-        )
+        self.parser = ResponseValidatorParser
+        self.country_parser = CountryParser
 
-    def validate(self, response: ModelResponse) -> dict:
-
+    def validate(self, response: Union[ModelResponse, dict]) -> dict:
+        if isinstance(response, dict):
+            res = response
+        else:
+            res = self.country_parser.parse(response).parsed
+            
+        # Carry over "thought", "key_points", and "strategic_alignment" to validated
         validated = {}
+        validated["thought"] = res.get("thought", "")
+        validated["key_points"] = res.get("key_points", [])
+        validated["strategic_alignment"] = res.get("strategic_alignment", "")
 
-        res = self.parser.parse(response).parsed
-        diplomatic_response = res["diplomatic_response"]
-        protocol_result = self._validate_diplomatic_protocol(diplomatic_response)
+        diplomatic_text = res["diplomatic_response"]
+        protocol_result = self._validate_diplomatic_protocol(diplomatic_text)
 
         validated["diplomatic_response"] = protocol_result["validated_response"]
         validated["validation_notes"] = protocol_result["validation_notes"]
-        
         return validated
 
     def _validate_diplomatic_protocol(self, response_text: str) -> dict:
