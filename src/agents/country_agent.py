@@ -44,10 +44,6 @@ class CountryAgent(DialogAgent):
         response = self.model(messages = self._construct_prompt(incoming_msg))
         parsed_response = self.parser.parse(response)
         validated = self.validator.validate(parsed_response)
-
-        print(f"Original response: {parsed_response.parsed}")
-        print(f"Validated response: {validated['diplomatic_response']}")
-        print(f"Validation notes: {validated['validation_notes']}")
         
         return Msg(
             name=self.country_name,
