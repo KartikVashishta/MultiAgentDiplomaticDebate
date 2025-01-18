@@ -29,4 +29,20 @@ def test_diplomatic_memory_stream_add_message(stream):
     assert stream.strategy_memory.get_memory()[0].name == "United States Strategy"
     assert stream.strategy_memory.get_memory()[0].role == "system"
 
+@pytest.fixture
+def stream_with_new_country():
+    return DiplomaticMemoryStream(country_name="Germany")
+
+def test_diplomatic_memory_stream_add_message_with_new_country(stream_with_new_country):
+    opposition_country_position = Msg(
+        name="France", 
+        content="Germany is a great country, and we should be friends with them.",
+        role="system"
+    )
+    stream_with_new_country.add(opposition_country_position)
+    assert len(stream_with_new_country.debate_memory.get_memory()) == 1
+    assert len(stream_with_new_country.strategy_memory.get_memory()) == 1
+    assert stream_with_new_country.strategy_memory.get_memory()[0].name == "Germany Strategy"
+    assert stream_with_new_country.strategy_memory.get_memory()[0].role == "system"
+
 pytest.main([__file__])

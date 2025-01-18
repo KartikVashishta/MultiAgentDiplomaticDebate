@@ -43,7 +43,7 @@ class DiplomaticMemoryStream:
         self.debate_memory = TemporaryMemory()
         self.strategy_memory = TemporaryMemory()
     
-    def add(self, opposition_country_position: Msg):
+    def add(self, opposition_country_position: Msg, include_strategy: bool = False):
         """
         Processes an opposition country's diplomatic statement and generates strategic analysis.
 
@@ -55,40 +55,42 @@ class DiplomaticMemoryStream:
                 - name: The name of the opposition country
                 - content: Their diplomatic statement
                 - role: Their role in the diplomatic exchange
+            include_strategy (bool): Whether to include a strategic analysis in the memory
         """
-        prompt = STRATEGIC_ANALYSIS_PROMPT.format(
-            country_name=self.country_name,
-            opposition_statement=opposition_country_position.content,
-            opposition_country=opposition_country_position.name
-        )
+        if include_strategy:
+            print_green(f"[INFO]: {self.country_name} strategizing")
+            prompt = STRATEGIC_ANALYSIS_PROMPT.format(
+                country_name=self.country_name,
+                opposition_statement=opposition_country_position.content,
+                opposition_country=opposition_country_position.name
+            )
         
-        
-        parser = MarkdownJsonDictParser(
-            content_hint='{"quick_analysis": "Brief assessment", "identified_intentions": ["intentions"], "potential_risks": ["risks"], "recommended_approach": {"tone": "tone", "key_points": ["points"], "leverage_points": ["points"]}, "long_term_considerations": ["considerations"]}',
-            keys_to_memory=["quick_analysis", "identified_intentions", "potential_risks", "recommended_approach", "long_term_considerations"],
-            keys_to_content=None
-        )
-        
-        messages = [
-            {"role": "system", "content": "You are a strategic advisor. Analyze the diplomatic statement and provide a structured JSON response."},
-            {"role": "user", "content": prompt}
-        ]
-        
-        model = OpenAIChatWrapper(**BASIC_MODEL_CONFIG)
-        response = model(messages=messages)
+            parser = MarkdownJsonDictParser(
+                content_hint='{"quick_analysis": "Brief assessment", "identified_intentions": ["intentions"], "potential_risks": ["risks"], "recommended_approach": {"tone": "tone", "key_points": ["points"], "leverage_points": ["points"]}, "long_term_considerations": ["considerations"]}',
+                keys_to_memory=["quick_analysis", "identified_intentions", "potential_risks", "recommended_approach", "long_term_considerations"],
+                keys_to_content=None
+            )
+            
+            messages = [
+                {"role": "system", "content": "You are a strategic advisor. Analyze the diplomatic statement and provide a structured JSON response."},
+                {"role": "user", "content": prompt}
+            ]
+            
+            model = OpenAIChatWrapper(**BASIC_MODEL_CONFIG)
+            response = model(messages=messages)
 
-        parsed_response = parser.parse(response)
+            parsed_response = parser.parse(response)
+
+            self.strategy_memory.add(
+                Msg(
+                    name=f"{self.country_name}_strategy",
+                    content=parsed_response.parsed,
+                    role="system"
+                )
+            )
         
         self.debate_memory.add(opposition_country_position)
-        print_green(f"[INFO]: {self.country_name} strategizing")
-        self.strategy_memory.add(
-            Msg(
-                name=f"{self.country_name} Strategy",
-                content=parsed_response.parsed,
-                role="system"
-            )
-        )
-    
+
     def __repr__(self):
         general_memory = self.general_memory.get_memory(recent_n=1)[0]
         return f"""
