@@ -207,31 +207,34 @@ By default, `run.py`:
 
 ## 7. Design Rationale
 
-This project uses a multi-agent approach, where each agent has distinct responsibilities and memory. Below is the rationale behind each design choice:
+When I set out to build this **Multi-Agent Diplomatic Debate** simulation, I was fascinated by the idea of bringing multiple AI “voices” (each representing a different country) into a single environment and watching how they might interact. Here’s how I tackled it—and importantly, **why** I chose this path:
 
-1. **Strict JSON for LLM Output**
+  1. I noticed that multi-agent LLM systems often lack clear structure: each agent might talk over one another, or produce unstructured responses. I wanted a system where every participant had a distinct perspective, spoke in JSON, and collaborated (or conflicted) in a controlled setting.  
+   - **Why a Debate?** Because debates are naturally multi-turn, multi-perspective, and need strong coordination. It was a perfect playground to test how well these autonomous AI “characters” can negotiate, respond to each other, and remain consistent over multiple rounds.
 
-   - We require each LLM-based agent to produce JSON, parsed by classes in `src/parsers/parsers.py`.
-   - This ensures we can reliably extract fields like `score`, `analysis`, etc., without string mismatch or ad hoc regex.
+2. **Breaking down the problems, piece by piece to declutter** 
+   - **Memory Management**: Each country needs “remembrance” of previous statements—otherwise they’ll forget context. So I introduced a `DiplomaticMemoryStream` that tracks short-term (debate) and long-term (strategic) memory.  
+   - **Structured Output**: LLMs can produce meandering text. I needed strict JSON for easy parsing (especially for the Judge’s scoring).  
+   - **Orchestration**: How do we ensure each country speaks in turn, and the judge only intervenes at the right time? That’s where the `DebateOrchestrator` came in to control the conversation flow.  
 
-2. **Modular Memory**
+   **Why** those decisions? Because from personal experience, AI outputs become unmanageable if you don’t parse them properly or store them in well-defined memory “slots.” I learned early that random text generation quickly gets out of sync if you can’t systematically parse or recall it.
 
-   - Each `CountryAgent` has a `DiplomaticMemoryStream` that keeps track of past statements (debate history), strategic analysis, and general knowledge.
-   - This promotes **longer-term consistency** in multi-round dialogues.
+3. **How the complex interactions were managed**  
+   - **CountryAgent**: Focuses purely on generating a statement based on its internal memory—like a delegate reading from policy notes.  
+   - **JudgeAgent**: Observes all statements, calls the LLM for a round summary, and eventually produces a verdict.  
+   - **Why** separate them? I found that mixing the “speaker” role with the “evaluator” role just muddled the logic. Having a separate Judge keeps it fair and conceptually mirrors real-world debates: you have the participants and you have an umpire.
 
-3. **Separation of Roles**
+4. **Common issues and how they were tackled**  
+   - **Parsing Errors**: The biggest headache was JSON output from the LLM sometimes included incomplete braces or strange punctuation. I wrote robust parsers and fallback steps (like sanitizing quotes).  
+   - **Memory Overload**: As the rounds stacked, the agent prompts grew. So I decided to keep “recent memory” small and “longer memory” structured, so it’s only partially appended when needed.  
+   - **Why** so many fallback strategies? Because AI is unpredictable, and I learned that ensuring each agent remains stable round after round requires plenty of guardrails.
 
-   - **CountryAgent**: Focuses solely on generating a new official statement.
-   - **JudgeAgent**: Aggregates statements each round and uses a different prompt to produce a JSON-based score summary.
+5. **My underlying WHY**  
+   - I wanted to show how different “characters” (countries) can not just speak but also track relationships and shift strategies over time.  
+   - I’ve always been curious whether multi-agent dialogue can mimic real human negotiations. This project let me test that curiosity in a structured simulation.  
+   - More broadly, I wanted a system that can scale or adapt: you can add new countries, or a separate role (like a press agent or a mediator), without rewriting all your code.
 
-4. **Orchestrator**
-
-   - A single orchestrator (`DebateOrchestrator`) handles the flow from round to round.
-   - This centralizes logic for announcements, round ordering, final verdict, etc.
-
-5. **Why This Layout**
-   - We wanted each piece of logic (country building, memory, agenting, judging, orchestrating) to remain loosely coupled.
-   - **Easy Debugging**: If the judge sees no messages, it’s simpler to diagnose that the orchestrator might not be broadcasting or that a country has the wrong name.
+Ultimately, everything boiled down to making a simulation that feels robust, traceable, and *fun* to watch. The entire journey—from deciding on JSON structures to orchestrating a multi-round debate—was about ensuring consistency, clarity, and the possibility of easily adding new features if needed (like advanced memory retrieval, deeper judge analytics, or dynamic scoring). This is my personal “why”—building a flexible, multi-agent environment where each step is logically motivated by the desire for clarity, reusability, and a bit of real-world debate authenticity.
 
 ---
 
