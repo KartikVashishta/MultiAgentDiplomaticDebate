@@ -35,6 +35,42 @@ load_dotenv()
 os.makedirs(PROFILE_DIR, exist_ok=True)
 
 def CountryProfileBuilder(country_name: str) -> CountryProfile:
+    """Builds or loads a comprehensive country profile for diplomatic simulations.
+
+    This function either loads an existing country profile from .data/country_profiles or creates a new one
+    by gathering information from various sources. The profile includes basic information,
+    government details, historical context, foreign policy, economic data, cultural aspects,
+    diplomatic behavior, strategic interests, and relationships.
+
+    Time Complexity:
+        - Loading existing profile: O(1) disk I/O
+        - Building new profile: O(N) where N is the number of API calls to LLM and search services
+          * Each section (basic info, government, etc.) requires 2-3 API calls
+          * Total API calls ≈ 20-25 per country profile
+        - Memory operations: O(1) for storing and accessing profile data
+        - JSON parsing: O(M) where M is the size of response strings (typically small)
+
+    Args:
+        country_name (str): The name of the country to build a profile for.
+
+    Returns:
+        CountryProfile: A comprehensive profile object containing all country information.
+
+    Examples:
+        >>> profile = CountryProfileBuilder("United States")
+        >>> print(profile.basic_info.name)
+        'United States'
+        >>> print(profile.government.government_type)
+        'Federal presidential constitutional republic'
+        >>> print(len(profile.foreign_policy.core_goals))
+        5  # Number of core foreign policy goals
+
+    Note:
+        - The function caches profiles on disk for future use
+        - Uses GPT-4o-mini for LLM operations
+        - Requires DuckDuckGo search API for information gathering
+        - API keys should be set in environment variables
+    """
     profile_path = os.path.join(PROFILE_DIR, f"{country_name.lower().replace(' ', '_')}.json")
 
     if os.path.isfile(profile_path):

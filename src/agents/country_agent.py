@@ -10,7 +10,34 @@ from src.prompts import COUNTRY_INITIALIZATION_PROMPT
 from src.parsers.parsers import CountryParser
 
 class CountryAgent(DialogAgent):
+    """An agent representing a country in diplomatic negotiations.
+
+    This agent maintains its own diplomatic memory stream, processes incoming
+    messages, and generates appropriate diplomatic responses based on its
+    country's profile and strategic interests.
+
+    Attributes:
+        country_name (str): Name of the country this agent represents
+        memory_stream (DiplomaticMemoryStream): Memory management system
+        model (OpenAIChatWrapper): LLM for generating responses
+        parser (CountryParser): Parser for response formatting
+        validator (DiplomaticResponseValidator): Validator for responses
+
+    Examples:
+        >>> agent = CountryAgent("France")
+        >>> msg = Msg(name="Germany", content="Proposal for trade agreement")
+        >>> response = agent(msg)
+        >>> print(response.content)  # Diplomatic response from France
+    """
+
     def __init__(self, country_name: str, model_config: Optional[Dict[str, Any]] = BASIC_MODEL_CONFIG):
+        """Initialize a country agent with its memory and processing components.
+
+        Args:
+            country_name (str): Name of the country to represent
+            model_config (Optional[Dict[str, Any]], optional): LLM configuration. 
+                Defaults to BASIC_MODEL_CONFIG.
+        """
         self.country_name = country_name
 
         super().__init__(
@@ -25,14 +52,43 @@ class CountryAgent(DialogAgent):
         self.validator = DiplomaticResponseValidator(country_name)
 
     def __call__(self, msg: Optional[Msg] = None) -> Msg:
+        """Process an incoming message and generate a diplomatic response.
+
+        Args:
+            msg (Optional[Msg], optional): Incoming diplomatic message. 
+                Defaults to None.
+
+        Returns:
+            Msg: Diplomatic response message
+        """
         if msg:
             self.observe(msg)
         return super().__call__()
 
     def observe(self, msg: Msg) -> None:
+        """Add a message to the agent's memory stream.
+
+        Args:
+            msg (Msg): Message to store in memory
+        """
         self.memory_stream.add(msg)
 
     def reply(self, incoming_msg: Optional[Msg] = None) -> Msg:
+        """Generate a diplomatic response to an incoming message.
+
+        Processes the incoming message through the LLM, parses and validates
+        the response, and formats it as a diplomatic message.
+
+        Args:
+            incoming_msg (Optional[Msg], optional): Message to respond to. 
+                Defaults to None.
+
+        Returns:
+            Msg: Formatted diplomatic response with metadata including:
+                - thought: Internal strategic analysis
+                - key_points: Main points of the response
+                - strategic_alignment: How response aligns with country's interests
+        """
         response = self.model(messages = self._construct_prompt(incoming_msg))
         parsed_response = self.parser.parse(response)
         validated = self.validator.validate(parsed_response.parsed)
@@ -49,6 +105,23 @@ class CountryAgent(DialogAgent):
         )
 
     def _construct_prompt(self, incoming_msg: Msg = None) -> List[Dict[str, str]]:
+        """Construct a prompt for the LLM incorporating relevant memory and context.
+
+        Builds a prompt that includes:
+        1. System prompt with country initialization
+        2. Country profile from general memory
+        3. Recent debate history (last 5 messages)
+        4. Strategic analysis (last 3 analyses)
+        5. Current incoming message if any
+
+        Args:
+            incoming_msg (Msg, optional): Current message to respond to. 
+                Defaults to None.
+
+        Returns:
+            List[Dict[str, str]]: List of message dictionaries for the LLM,
+                each containing 'role' and 'content'
+        """
         messages = []
         
         messages.append({

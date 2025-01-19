@@ -4,7 +4,32 @@ from pydantic import BaseModel
 from langchain_openai import ChatOpenAI
 
 class ProfileValidator:
+    """A validator class for ensuring the quality and consistency of country profiles.
+
+    This class uses LLM to validate and potentially modify country profile data,
+    ensuring accuracy, consistency, and completeness of the information.
+
+    Attributes:
+        llm (ChatOpenAI): LLM instance for validation operations
+
+    Examples:
+        >>> validator = ProfileValidator(model_name="gpt-4o-mini", temperature=0.2)
+        >>> updated_profile, changes = validator.validate(
+        ...     model=country_profile,
+        ...     prompt_template=PROFILE_VALIDATOR_PROMPT,
+        ...     is_debug=True
+        ... )
+        >>> print(f"Made {len(changes)} changes to the profile")
+    """
+
     def __init__(self, model_name: str, temperature: float = 0.5, max_tokens: int = 8000):
+        """Initialize the profile validator.
+
+        Args:
+            model_name (str): Name of the LLM model to use
+            temperature (float, optional): Temperature for LLM responses. Defaults to 0.5
+            max_tokens (int, optional): Maximum tokens in LLM response. Defaults to 8000
+        """
         self.llm = ChatOpenAI(
             model=model_name,
             temperature=temperature,
@@ -12,6 +37,22 @@ class ProfileValidator:
         )
         
     def _parse_changes(self, validation_response: str) -> List[Dict[str, str]]:
+        """Parse the LLM validation response into structured changes.
+
+        Extracts change instructions from the LLM response, including the type
+        of change (ADD/REPLACE/REMOVE/UPDATE/CORRECT/CONTEXT), the field to
+        modify, and the reason for the change.
+
+        Args:
+            validation_response (str): Raw response from the LLM validator
+
+        Returns:
+            List[Dict[str, str]]: List of changes, each containing:
+                - type: Type of change to make
+                - field_path: Path to the field in the model
+                - new_value: New value to apply
+                - reason: Explanation for the change
+        """
         changes = []
     
         change_blocks = re.split(r'\n\s*\n', validation_response.strip())
@@ -44,6 +85,23 @@ class ProfileValidator:
         return changes
 
     def _apply_changes(self, model: BaseModel, changes: List[Dict[str, str]]) -> BaseModel:
+        """Apply the parsed changes to the Pydantic model.
+
+        Modifies the model according to the specified changes, handling special
+        cases like GDP formatting and list modifications.
+
+        Args:
+            model (BaseModel): Original Pydantic model to modify
+            changes (List[Dict[str, str]]): List of changes from _parse_changes
+
+        Returns:
+            BaseModel: Updated model with all changes applied
+
+        Note:
+            - Special handling for economic_profile.gdp field
+            - Supports nested field paths using dot notation
+            - Preserves model validation through Pydantic
+        """
         model_dict = model.model_dump()
         
         for change in changes:
@@ -117,20 +175,39 @@ class ProfileValidator:
         overwrite: bool = False,
         save_path: Optional[str] = None
     ) -> Union[Tuple[BaseModel, List[Dict[str, str]]], str]:
-        """
-        Validates a Pydantic model using the provided prompt template.
-        
+        """Validate and optionally update a Pydantic model using LLM.
+
+        Sends the model data to the LLM for validation, processes any suggested
+        changes, and can optionally save the updated model.
+
         Args:
-            model: The Pydantic model to validate
-            prompt_template: The prompt template to use for validation
-            context: Optional context to include in the prompt
-            is_debug: If True, returns tuple of (updated_model, changes)
-            overwrite: If True and is_debug is True, saves the updated model to save_path
-            save_path: Optional path to save the validated model to
-            
+            model (BaseModel): The Pydantic model to validate
+            prompt_template (Any): Template for the validation prompt
+            context (Optional[str], optional): Additional context for validation. 
+                Defaults to None
+            is_debug (bool, optional): Whether to return detailed change info. 
+                Defaults to False
+            overwrite (bool, optional): Whether to save changes to file. 
+                Defaults to False
+            save_path (Optional[str], optional): Path to save updated model. 
+                Defaults to None
+
         Returns:
-            If is_debug is False: The validation response string
-            If is_debug is True: Tuple of (updated_model, list of changes)
+            Union[Tuple[BaseModel, List[Dict[str, str]]], str]: Either:
+                - Tuple of (updated model, list of changes) if is_debug=True
+                - Raw validation response string if is_debug=False
+
+        Examples:
+            >>> # Basic validation
+            >>> result = validator.validate(profile, PROMPT)
+            >>> print(result)  # Prints validation response
+            
+            >>> # Debug mode with changes
+            >>> profile, changes = validator.validate(
+            ...     profile, PROMPT, is_debug=True, overwrite=True,
+            ...     save_path="profile.json"
+            ... )
+            >>> print(f"Applied {len(changes)} changes")
         """
         prompt_vars = {
             "profile_data": model.model_dump_json(indent=2)
