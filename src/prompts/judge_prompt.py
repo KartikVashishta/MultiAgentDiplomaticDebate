@@ -48,5 +48,7 @@ You must respond with a JSON object in exactly this format:
             "strategic_development": "how strategy evolved",
             "key_moments": ["defining exchanges"]
         }}
-    }}
+    }},
+    "summary_insights": "a short, bullet-pointed breakdown of key highlights, successes, and lessons learned, from a professional viewpoint"
 }}"""
+

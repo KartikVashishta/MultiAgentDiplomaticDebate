@@ -92,6 +92,21 @@ class DebateOrchestrator:
 
             final_verdict = self.judge_agent(None)  # triggers final verdict
             self._log_message(final_verdict)
+            if final_verdict.metadata and "summary_insights" in final_verdict.metadata:
+                summary_insights = final_verdict.metadata["summary_insights"]
+                
+                professional_summary_msg = Msg(
+                    name="System",
+                    role="system",
+                    content=(
+                        f"=== PROFESSIONAL SUMMARY ===\n"
+                        f"Below are the key highlights and professional insights:\n\n"
+                        f"{summary_insights}\n"
+                        f"=== END OF PROFESSIONAL SUMMARY ==="
+                    )
+                )
+                self._log_message(professional_summary_msg)
+                
         self._write_transcript_to_file()
 
     def _log_message(self, msg: Msg):

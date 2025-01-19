@@ -48,11 +48,12 @@ FinalParser = MarkdownJsonDictParser(
                         "strategic_development": "how strategy evolved",
                         "key_moments": ["defining exchanges"]
                     }
-                }
+                },
+                "summary_insights": "a short, bullet-pointed breakdown of key highlights, successes, and lessons learned, from a professional viewpoint"
             },
             keys_to_memory=["country_performance", "verdict_summary"],
             keys_to_content="verdict_summary",
-            keys_to_metadata=["final_scores", "rankings"]
+            keys_to_metadata=["final_scores", "rankings", "summary_insights"]
         )
 
 CountryParser = MarkdownJsonDictParser(
