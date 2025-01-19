@@ -20,6 +20,7 @@ A multi-agent, LLM-driven simulation for orchestrating diplomatic debates among 
 10. [Troubleshooting & FAQs](#troubleshooting--faqs)
 11. [Contributing](#contributing)
 12. [License](#license)
+13. [Architecture & Flow](#architecture--flow)
 
 ---
 
@@ -343,3 +344,90 @@ This repository is distributed under the **MIT License**. See `LICENSE` for more
 We hope the Diplomatic Debate Simulation helps you explore advanced usage of multi-agent systems and structured LLM interactions. If you have any questions, feel free to open an issue or reach out!
 
 _Enjoy simulating diplomatic negotiations!_
+
+---
+
+## 13. Architecture & Flow
+
+This section visually explains how the system’s components interact and how a single debate round unfolds.
+
+### 13.1 Architecture Diagram
+
+```mermaid
+flowchart LR
+    subgraph "Orchestrator"
+        O[DebateOrchestrator<br/>- Orchestrates Rounds<br/>- Maintains Problem Statement<br/>- Logs Transcript]
+    end
+
+    subgraph "Agents"
+    A1[CountryAgent<br/>- One instance per country<br/>- Maintains DiplomaticMemoryStream]
+    A2[JudgeAgent<br/>- Observes all statements<br/>- Produces round scores & final verdict]
+    end
+
+    subgraph "Memory"
+    M1[General Memory]
+    M2[Debate Memory]
+    M3[Strategy Memory]
+    end
+
+    O --> A1
+    O --> A2
+
+    A1 -->|Build official statement| LLM[(OpenAI Model)]
+    A2 -->|Evaluate statements| LLM
+    A1 --> M1
+    A1 --> M2
+    A1 --> M3
+
+    O -->|Logs| LOGFILE[debate_log.txt]
+```
+
+**Explanation**:
+
+1. **DebateOrchestrator** (O) controls the debate flow and logging.
+2. **CountryAgent** (A1) uses a `DiplomaticMemoryStream` (M1, M2, M3) and calls the LLM to build official statements.
+3. **JudgeAgent** (A2) evaluates statements each round using the LLM.
+4. The final transcript is written to `debate_log.txt`.
+
+### 13.2 Sequence Diagram (Round Flow)
+
+```mermaid
+sequenceDiagram
+    participant Host
+    participant Orchestrator
+    participant Country1
+    participant Country2
+    participant Judge
+
+    Host->>Orchestrator: Start Debate (Round 1)
+    Orchestrator->>Country1: Request opening statement
+    Country1->>Country1: Access DiplomaticMemoryStream
+    Country1->>LLM: Generate official statement (JSON)
+    LLM-->>Country1: Return structured response
+    Country1-->>Orchestrator: Diplomatic statement (in JSON)
+
+    Orchestrator->>Country2: Request opening statement
+    Country2->>Country2: Access DiplomaticMemoryStream
+    Country2->>LLM: Generate official statement (JSON)
+    LLM-->>Country2: Return structured response
+    Country2-->>Orchestrator: Diplomatic statement (in JSON)
+
+    note over Country1,Country2: (Repeat for all participating countries...)
+
+    Orchestrator->>Judge: Summon round evaluation
+    Judge->>Judge: Summarize all country statements
+    Judge->>LLM: Evaluate & produce round scores
+    LLM-->>Judge: JSON round summary
+    Judge-->>Orchestrator: Round results & summary
+    note over Orchestrator,Judge: Round complete – proceed to next round or final verdict
+```
+
+**Explanation**:
+
+1. The **Host** (system or user) triggers the round start.
+2. The **Orchestrator** requests each **CountryAgent**’s statement sequentially.
+3. Each **CountryAgent** calls the **LLM** to craft a JSON-based diplomatic response, referencing their memory.
+4. After all countries speak, the **JudgeAgent** evaluates them, also using the **LLM**.
+5. The result is compiled, and the Orchestrator either proceeds to the next round or obtains the final verdict if all rounds are complete.
+
+---
