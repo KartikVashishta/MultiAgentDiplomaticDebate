@@ -138,7 +138,8 @@ PROFILE_DIR = os.path.join(os.getcwd(), "data", "country_profiles")
 BASIC_MODEL_CONFIG = {
     "model_type": "openai_chat",
     "config_name": "openai_config",
-    "model_name": MODEL_NAME
+    "model_name": MODEL_NAME,
+    "temperature": 0.7
 }
 MODEL_CONFIG = {
     "model_type": "openai_chat",

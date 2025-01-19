@@ -15,7 +15,11 @@ from src.prompts import (
 from typing import Any, Dict, Optional, List
 
 class JudgeAgent(DialogAgent):
-    def __init__(self, num_rounds: int, num_countries: int, model_config: Optional[Dict[str, Any]] = MODEL_CONFIG):
+    def __init__(self, 
+                 num_rounds: int, 
+                 num_countries: int, 
+                 country_list: List[str], 
+                 model_config: Optional[Dict[str, Any]] = MODEL_CONFIG):
         super().__init__(
             name='Judge',
             sys_prompt=JUDGE_INITIALIZATION_PROMPT,
@@ -30,6 +34,7 @@ class JudgeAgent(DialogAgent):
         self.num_countries = num_countries
         self.round_parser = RoundParser
         self.final_parser = FinalParser
+        self._country_list = country_list
 
     def observe(self, msg: Msg) -> None:
         self.memory.add(msg)
@@ -48,14 +53,20 @@ class JudgeAgent(DialogAgent):
         
     def _evaluate_round(self, round_number: int) -> Msg:
 
-        memory = self.memory.get_memory()
-        start_idx = (round_number-1) * self.num_countries
-        end_idx = round_number * self.num_countries
+        raw_memory = self.memory.get_memory()
 
-        current_round_exchanges = memory[start_idx:end_idx]
+        country_messages = [m for m in raw_memory if m.name in self._country_list]
+
+        start_idx = (round_number - 1) * self.num_countries
+        end_idx   = round_number * self.num_countries
+        current_round_exchanges = country_messages[start_idx:end_idx]
+
         if len(current_round_exchanges) != self.num_countries:
-            raise ValueError(f"Expected {self.num_countries} exchanges for round {round_number}, but got {len(current_round_exchanges)}")
-
+            raise ValueError(
+                f"Expected {self.num_countries} exchanges for round {round_number}, "
+                f"but got {len(current_round_exchanges)}"
+            )
+        
         evaluation_prompt = self._construct_evaluation_prompt(round_number, current_round_exchanges)
         response = self.model(messages=evaluation_prompt)
         parsed_response = self.round_parser.parse(response).parsed

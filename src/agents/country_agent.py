@@ -27,7 +27,7 @@ class CountryAgent(DialogAgent):
     def __call__(self, msg: Optional[Msg] = None) -> Msg:
         if msg:
             self.observe(msg)
-        return self.reply(msg)
+        return super().__call__()
 
     def observe(self, msg: Msg) -> None:
         self.memory_stream.add(msg)
@@ -35,10 +35,10 @@ class CountryAgent(DialogAgent):
     def reply(self, incoming_msg: Optional[Msg] = None) -> Msg:
         response = self.model(messages = self._construct_prompt(incoming_msg))
         parsed_response = self.parser.parse(response)
-        validated = self.validator.validate(parsed_response)
+        validated = self.validator.validate(parsed_response.parsed)
         
         return Msg(
-            name=self.country_name,
+            name=self.name,
             content=validated["diplomatic_response"],
             role="assistant",
             metadata={
