@@ -74,8 +74,6 @@ A **JudgeAgent** observes these statements every round, compiles them, scores ea
 
 ## 3. Project Structure
 
-Your repository might look like this:
-
 ```
 .
 ├── run.py                 # Entry point script to initiate the debate
