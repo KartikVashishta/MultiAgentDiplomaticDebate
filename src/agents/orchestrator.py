@@ -75,25 +75,39 @@ class DebateOrchestrator:
         self.all_agents = self.country_agents + [self.judge_agent]
 
         self._transcript_lines = []
+        self.scoreboard = []
     
     def run_debate(self):
         """Execute the complete diplomatic debate simulation.
 
         This method:
         1. Introduces the debate topic and participants
-        2. Conducts specified number of rounds
-        3. Gets final verdict from judge
-        4. Logs entire conversation
+        2. Conducts specified number of rounds, including:
+           - Gathering proposals from countries
+           - Processing responses to proposals
+           - Collecting country statements
+           - Getting judge's evaluation
+        3. Records scores and rankings each round
+        4. Gets final verdict and professional summary
+        5. Logs entire conversation 
 
         Time Complexity:
-            - Per Round: O(C) where C is number of countries
-            - Total: O(R * C) where R is number of rounds
+            - Introduction: O(1)
+            - Per Round: O(C^2) where C is number of countries
+                - Proposals: O(C)
+                - Responses: O(C^2) in worst case
+                - Statements: O(C)
+                - Judgment: O(1)
+            - Final Verdict: O(1)
+            - Total: O(R * C^2) where R is number of rounds
             - Logging: O(M) where M is total message count
 
         Side Effects:
             - Creates/updates log file at self.log_file
-            - Broadcasts messages to all agents
+            - Broadcasts messages to all agents 
             - Updates agent memory streams
+            - Maintains scoreboard with rankings and scores
+            - Generates professional summary of debate
         """
         with msghub(self.all_agents) as hub:
             introduction_msg = Msg(
@@ -118,6 +132,24 @@ class DebateOrchestrator:
                 hub.broadcast(round_header)
                 self._log_message(round_header)
 
+                # Gather proposals from each country
+                proposals = []
+                for country_agent in self.country_agents:
+                    proposal_msg = getattr(country_agent, "make_proposal", lambda: None)()
+                    if proposal_msg:
+                        hub.broadcast(proposal_msg)
+                        self._log_message(proposal_msg)
+                        proposals.append(proposal_msg)
+
+                # Let each country respond to each proposal
+                for prop in proposals:
+                    for country_agent in self.country_agents:
+                        if country_agent.name != prop.name:
+                            resp_msg = getattr(country_agent, "respond_to_proposal", lambda x: None)(prop)
+                            if resp_msg:
+                                hub.broadcast(resp_msg)
+                                self._log_message(resp_msg)
+
                 for country_agent in self.country_agents:
                     response_msg = country_agent()
                     self._log_message(response_msg)
@@ -125,11 +157,48 @@ class DebateOrchestrator:
                 round_judgment = self.judge_agent(None)
                 self._log_message(round_judgment)
 
-            final_verdict = self.judge_agent(None)  # triggers final verdict
+                # Log scoreboard 
+                if round_judgment and round_judgment.metadata and "scores" in round_judgment.metadata:
+                    import json
+                    scoreboard_str = json.dumps(round_judgment.metadata["scores"], indent=2)
+                    scoreboard_msg = Msg(
+                        name="System",
+                        role="system",
+                        content=(
+                            f"Round {round_idx} Scoreboard:\n{scoreboard_str}\n"
+                            f"Rankings: {round_judgment.metadata.get('rankings', [])}"
+                        )
+                    )
+                    self._log_message(scoreboard_msg)
+
+                if round_judgment.metadata and "rankings" in round_judgment.metadata:
+                    round_data = {
+                        "round": round_judgment.metadata.get("round"),
+                        "scores": round_judgment.metadata.get("scores"),
+                        "rankings": round_judgment.metadata.get("rankings")
+                    }
+                    self.scoreboard.append(round_data)
+
+            final_verdict = self.judge_agent(None)
             self._log_message(final_verdict)
+
+            if final_verdict and final_verdict.metadata and "final_scores" in final_verdict.metadata:
+                import json
+                final_scores_str = json.dumps(final_verdict.metadata["final_scores"], indent=2)
+                final_rankings = final_verdict.metadata.get("rankings", [])
+                final_msg = Msg(
+                    name="System",
+                    role="system",
+                    content=(
+                        f"=== Final Scores ===\n{final_scores_str}\n"
+                        f"Rankings: {final_rankings}"
+                    )
+                )
+                self._log_message(final_msg)
+
+            # Professional summary if present
             if final_verdict.metadata and "summary_insights" in final_verdict.metadata:
                 summary_insights = final_verdict.metadata["summary_insights"]
-                
                 professional_summary_msg = Msg(
                     name="System",
                     role="system",
@@ -141,7 +210,7 @@ class DebateOrchestrator:
                     )
                 )
                 self._log_message(professional_summary_msg)
-                
+
         self._write_transcript_to_file()
 
     def _log_message(self, msg: Msg):
@@ -158,11 +227,21 @@ class DebateOrchestrator:
         role = msg.role
         sender = msg.name
         text = msg.content
+
         if isinstance(text, dict):
             import json
             text = json.dumps(text, indent=2)
 
-        log_line = f"{stamp} [{role}] {sender}: {text}"
+        log_line = (
+            "\n"
+            "--------------------------------------------------\n"
+            f"Timestamp: {stamp}\n"
+            f"Role:      {role}\n"
+            f"Sender:    {sender}\n"
+            "--------------------------------------------------\n"
+            f"{text}\n"
+            "==================================================\n"
+        )
         self._transcript_lines.append(log_line)
     
     def _write_transcript_to_file(self):
@@ -171,6 +250,11 @@ class DebateOrchestrator:
         Writes all accumulated messages from self._transcript_lines to the file
         specified in self.log_file. Each line includes timestamp, role, sender,
         and content of the message.
+
+        Time Complexity:
+            - File Write: O(N) where N is total number of lines
+            - String Operations: O(1) per line
+            - Overall: O(N) where N is total transcript length
 
         Side Effects:
             - Creates or overwrites file at self.log_file
@@ -183,4 +267,3 @@ class DebateOrchestrator:
         with open(self.log_file, "w", encoding="utf-8") as f:
             for line in self._transcript_lines:
                 f.write(line + "\n")
-

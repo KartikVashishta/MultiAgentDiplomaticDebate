@@ -146,7 +146,8 @@ class JudgeAgent(DialogAgent):
             metadata = {
                 "round" : round_number,
                 "scores" : parsed_response["scores"],
-                "analysis" : parsed_response["analysis"]
+                "analysis" : parsed_response["analysis"],
+                "rankings" : parsed_response.get("rankings", [])
             }
         )
     

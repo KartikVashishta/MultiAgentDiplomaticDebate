@@ -10,6 +10,28 @@ from src.prompts import COUNTRY_INITIALIZATION_PROMPT
 from src.parsers.parsers import CountryParser
 
 class CountryAgent(DialogAgent):
+
+    def make_proposal(self):
+        """
+        Create a new proposal (resolution or treaty) in JSON format (optional).
+        Return a Msg with a structure like:
+        {
+           "proposal_type": "resolution|treaty",
+           "title": "Short Title",
+           "content": "Detailed text of the resolution/treaty",
+           "rationale": "Reasoning behind the proposal"
+        }
+        Or return None if no proposal is made this round.
+        """
+        return None
+
+    def respond_to_proposal(self, proposal_msg: Msg):
+        """
+        Respond to a proposed resolution/treaty. Could be acceptance, rejection, or amendment request.
+        Return a Msg containing your country's stance on the proposal, or None if no response.
+        """
+        return None
+    
     """An agent representing a country in diplomatic negotiations.
 
     This agent maintains its own diplomatic memory stream, processes incoming

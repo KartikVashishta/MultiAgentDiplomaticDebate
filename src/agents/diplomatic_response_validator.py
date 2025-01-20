@@ -28,7 +28,10 @@ class DiplomaticResponseValidator:
         validated["key_points"] = res.get("key_points", [])
         validated["strategic_alignment"] = res.get("strategic_alignment", "")
 
-        diplomatic_text = res["diplomatic_response"]
+        diplomatic_text = res.get("diplomatic_response", "")
+        if not diplomatic_text:
+            # Fallback or raise a more descriptive error if you prefer
+            diplomatic_text = "No official statement is provided at this time."
         protocol_result = self._validate_diplomatic_protocol(diplomatic_text)
 
         validated["diplomatic_response"] = protocol_result["validated_response"]

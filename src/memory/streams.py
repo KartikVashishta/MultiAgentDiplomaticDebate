@@ -95,15 +95,15 @@ class DiplomaticMemoryStream:
                 {"role": "system", "content": "You are a strategic advisor. Analyze the diplomatic statement and provide a structured JSON response."},
                 {"role": "user", "content": prompt}
             ]
-            
+
             model = OpenAIChatWrapper(**BASIC_MODEL_CONFIG)
             response = model(messages=messages)
+            parsed_response = parser.parse(response).parsed
 
-            parsed_response = parser.parse(response)
             self.strategy_memory.add(
                 Msg(
                     name=f"{('_'.join(self.country_name.split(' ')).lower())}_strategy",
-                    content=parsed_response.parsed,
+                    content=parsed_response,
                     role="system"
                 )
             )
@@ -144,3 +144,4 @@ class DiplomaticMemoryStream:
             str: Same output as __repr__
         """
         return self.__repr__()
+    

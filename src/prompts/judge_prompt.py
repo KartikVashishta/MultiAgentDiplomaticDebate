@@ -25,7 +25,8 @@ You must respond with a JSON object in exactly this format:
             "thought_process": "analysis of country's diplomatic approach"
         }}
     }},
-    "round_summary": "overall round analysis"
+    "round_summary": "overall round analysis",
+    "rankings": ["ordered list of countries by performance in this round"],
 }}"""
 
 JUDGE_VERDICT_PROMPT = """Provide a final verdict on the entire diplomatic exchange between {num_countries} countries over {total_rounds} rounds.
