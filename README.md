@@ -13,9 +13,7 @@ A multi-agent, LLM-driven simulation for orchestrating diplomatic debates among 
 5. [Usage](#usage)
 6. [Detailed Example Flow](#detailed-example-flow)
 7. [Design Rationale](#design-rationale)
-8. [Code Documentation Guidelines](#code-documentation-guidelines)
-   1. [Comments & Docstrings](#comments--docstrings)
-   2. [Time Complexity](#time-complexity)
+8. [Time Complexity](#time-complexity)
 9. [Key Modules & Classes](#key-modules--classes)
 10. [Troubleshooting & FAQs](#troubleshooting--faqs)
 11. [Contributing](#contributing)
@@ -238,29 +236,7 @@ Ultimately, everything boiled down to making a simulation that feels robust, tra
 
 ---
 
-## 8. Code Documentation Guidelines
-
-### 8.1 Comments & Docstrings
-
-- **Docstrings**: All public classes and methods should have a docstring describing purpose, parameters, and returns. Example:
-
-  ```python
-  def reply(self, incoming_msg: Optional[Msg] = None) -> Msg:
-      """
-      Generates a diplomatic response based on internal memory and the incoming message.
-
-      :param incoming_msg: The last message observed (can be None if first call).
-      :return: A structured Msg with "diplomatic_response" text.
-      """
-  ```
-
-- **Inline Comments**: For logic that’s not straightforward, add short comments. For example:
-  ```python
-  # Filter out only country messages from memory
-  country_messages = [m for m in raw_memory if m.name in self._country_list]
-  ```
-
-### 8.2 Time Complexity
+## 8. Time Complexity
 
 - **Round Execution**: Each round calls `C` `CountryAgent`s, then 1 `JudgeAgent`. For `R` rounds, total calls = `O(R*C)`.
 - **JSON Parsing**: Typically `O(M)` on the size of the LLM text, though overshadowed by network calls to the LLM.
