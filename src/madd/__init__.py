@@ -1,6 +1,16 @@
-"""MADD - Multi-Agent Diplomatic Debate
+__version__ = "0.2.0"
 
-LangGraph-powered diplomatic debate simulation.
-"""
+from madd.core import (
+    build_graph,
+    load_scenario,
+    create_initial_state,
+    get_settings,
+)
 
-__version__ = "0.1.0"
+__all__ = [
+    "__version__",
+    "build_graph",
+    "load_scenario",
+    "create_initial_state",
+    "get_settings",
+]

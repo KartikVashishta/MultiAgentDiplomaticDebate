@@ -1,3 +1,3 @@
-# TODO: Implement in separate files:
-# - web_search.py: Wrapper around search tool with citation extraction
-# - citation_utils.py: Utilities for managing and validating citations
+from madd.tools.web_search import web_search, search_country_info
+
+__all__ = ["web_search", "search_country_info"]

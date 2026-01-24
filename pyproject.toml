@@ -3,14 +3,53 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "debate_simulation"
-version = "0.1.0"
-description = "A diplomatic debate simulation system"
-requires-python = ">=3.8"
+name = "madd"
+version = "0.2.0"
+description = "Multi-Agent Diplomatic Debate - LangGraph simulation"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.12"
+dependencies = [
+    "langchain>=1.0.0",
+    "langchain-openai>=1.0.0",
+    "langgraph>=1.0.0",
+    "openai>=1.50.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.0.0",
+    "pyyaml>=6.0",
+]
 
-[tool.setuptools]
-packages = ["src"]
-package-dir = {"" = "."}
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+madd = "madd.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
 
 [tool.pytest.ini_options]
-pythonpath = ["."] 
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

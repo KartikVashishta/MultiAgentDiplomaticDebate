@@ -30,7 +30,6 @@ class DiplomaticResponseValidator:
 
         diplomatic_text = res.get("diplomatic_response", "")
         if not diplomatic_text:
-            # Fallback or raise a more descriptive error if you prefer
             diplomatic_text = "No official statement is provided at this time."
         protocol_result = self._validate_diplomatic_protocol(diplomatic_text)
 

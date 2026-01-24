@@ -2,65 +2,124 @@ from typing import cast
 
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
-
 from pydantic import BaseModel
+
 from madd.core.config import get_settings
-from madd.core.schemas import AuditFinding, AuditSeverity, DebateMessage
+from madd.core.schemas import AuditFinding, AuditSeverity
 from madd.core.state import DebateState
 
 
-class AuditReport(BaseModel):
-    findings: list[AuditFinding]
+class FindingOutput(BaseModel):
+    severity: str = "info"
+    category: str = ""
+    description: str = ""
+    country: str = ""
+    evidence: list[str] = []
+
+
+class VerifierLLMOutput(BaseModel):
+    findings: list[FindingOutput] = []
 
 
 def verify_claims(state: DebateState) -> list[AuditFinding]:
     settings = get_settings()
     llm = ChatOpenAI(
-        model=settings.model_name,
+        model=settings.verify_model,
         temperature=0.0,
-        api_key=settings.openai_api_key
+        api_key=settings.openai_api_key,
+        max_retries=settings.max_retries,
     )
-
-    class AuditResult(AuditReport):
-        findings: list[AuditFinding]
-        
-    structured_llm = llm.with_structured_output(AuditResult)
     
     current_round = state["round"]
-    messages = [m for m in state["messages"] if m.round_number == current_round]
+    messages = [m for m in state.get("messages", []) if m.round_number == current_round]
     
     if not messages:
         return []
-
-    system_prompt = """You are a Fact-Checking Verifier bot.
-Your goal is to detect:
-1. Direct contradictions between a country's statement and their profile facts.
-2. Claims that are unsupported by citations or clearly hallucinated.
-3. Inconsistencies with previous statements from the same country.
-
-Be strict but fair. Only report significant issues."""
-
-    context_text = ""
+    
+    findings: list[AuditFinding] = []
+    
     for m in messages:
         profile = state["profiles"].get(m.country)
-        profile_facts = profile.facts.model_dump_json() if profile else "No profile"
+        if not profile:
+            continue
         
-        context_text += f"""
----
-Country: {m.country}
-Statement: {m.public_statement}
-Profile Facts: {profile_facts}
----
-"""
-
-    user_prompt = f"""Audit the following statements from Round {current_round}:
-{context_text}
-
-Return a list of findings."""
-
-    response = structured_llm.invoke([
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=user_prompt)
-    ])
+        valid_citation_ids = {c.id for c in profile.all_citations()}
+        refs_used = m.references_used
+        
+        if not refs_used:
+            findings.append(AuditFinding(
+                severity=AuditSeverity.WARNING,
+                category="unsupported_claim",
+                description=f"{m.country} made statements without any citation references",
+                country=m.country,
+                round_number=current_round,
+                evidence=[
+                    f"Statement snippet: \"{m.public_statement[:150]}...\"",
+                    "references_used: []",
+                ],
+            ))
+        else:
+            unknown_ids = [cid for cid in refs_used if cid not in valid_citation_ids]
+            if unknown_ids:
+                findings.append(AuditFinding(
+                    severity=AuditSeverity.WARNING,
+                    category="unsupported_claim",
+                    description=f"{m.country} referenced unknown citation IDs",
+                    country=m.country,
+                    round_number=current_round,
+                    evidence=[
+                        f"Unknown IDs: {unknown_ids}",
+                        f"Valid IDs: {list(valid_citation_ids)[:5]}",
+                        f"Statement snippet: \"{m.public_statement[:100]}...\"",
+                    ],
+                ))
     
-    return response.findings if response else []
+    structured_llm = llm.with_structured_output(VerifierLLMOutput)
+    
+    system_prompt = """You are a fact-checking verifier.
+Detect:
+1. Contradictions between statements and country profile facts
+2. Inconsistencies with prior statements
+3. Factual errors
+
+Return findings with:
+- severity: info/warning/error
+- category: contradiction/inconsistency/factual_error
+- description: what the issue is
+- country: which country
+- evidence: list of specific quotes showing the issue"""
+
+    context = ""
+    for m in messages:
+        profile = state["profiles"].get(m.country)
+        facts = ""
+        if profile:
+            facts = f"GDP: {profile.facts.economy.gdp_usd_billions}B, Leaders: {profile.facts.current_leaders}"
+        context += f"\n{m.country} (Facts: {facts}):\n{m.public_statement[:400]}\n"
+
+    user_prompt = f"""Round {current_round} statements:
+{context}
+
+Check for contradictions and inconsistencies only (unsupported claims already checked)."""
+
+    try:
+        result = structured_llm.invoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt)
+        ])
+        output = cast(VerifierLLMOutput, result)
+        
+        severity_map = {"info": AuditSeverity.INFO, "warning": AuditSeverity.WARNING, "error": AuditSeverity.ERROR}
+        for f in output.findings:
+            findings.append(AuditFinding(
+                severity=severity_map.get(f.severity.lower(), AuditSeverity.INFO),
+                category=f.category or "general",
+                description=f.description,
+                country=f.country or None,
+                round_number=current_round,
+                evidence=f.evidence,
+            ))
+    except Exception as e:
+        print(f"    Verifier LLM error: {e}")
+    
+    return findings

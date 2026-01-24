@@ -1,6 +1,5 @@
+import operator
 from typing import Annotated, TypedDict
-
-from langgraph.graph.message import add_messages
 
 from madd.core.schemas import (
     AuditFinding,
@@ -12,14 +11,20 @@ from madd.core.schemas import (
 from madd.core.scenario import Scenario
 
 
+def _merge_profiles(existing: dict, new: dict) -> dict:
+    merged = dict(existing)
+    merged.update(new)
+    return merged
+
+
 class DebateState(TypedDict):
     scenario: Scenario
     round: int
-    profiles: dict[str, CountryProfile]
+    profiles: Annotated[dict[str, CountryProfile], _merge_profiles]
     treaty: TreatyDraft
-    messages: Annotated[list[DebateMessage], add_messages]
-    scorecards: list[RoundScorecard]
-    audit: list[AuditFinding]
+    messages: Annotated[list[DebateMessage], operator.add]
+    scorecards: Annotated[list[RoundScorecard], operator.add]
+    audit: Annotated[list[AuditFinding], operator.add]
     max_rounds: int
 
 
