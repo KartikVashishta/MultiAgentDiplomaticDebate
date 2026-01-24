@@ -42,13 +42,26 @@ def collect_all_citations(state: DebateState) -> list[Citation]:
     return citations
 
 
+def collect_used_citations(state: DebateState) -> list[Citation]:
+    cite_index = build_citation_index(state)
+    used_ids = set()
+    for msg in state.get("messages", []):
+        for cid in msg.references_used:
+            used_ids.add(cid)
+    citations = []
+    for cid in used_ids:
+        if cid in cite_index:
+            citations.append(cite_index[cid])
+    return citations
+
+
 def build_citation_index(state: DebateState) -> dict[str, Citation]:
     return {c.id: c for c in collect_all_citations(state)}
 
 
 def save_sources(state: DebateState, run_dir: Path) -> Path:
     path = run_dir / "sources.json"
-    citations = collect_all_citations(state)
+    citations = collect_used_citations(state)
     data = [c.model_dump(mode="json") for c in citations]
     with open(path, "w") as f:
         json.dump(data, f, indent=2, default=str)
@@ -65,14 +78,14 @@ def save_transcript(state: DebateState, run_dir: Path) -> Path:
         lines.append(f"\n## Round {msg.round_number} - {msg.country}\n")
         lines.append(f"\n{msg.public_statement}\n")
         
-        if msg.references_used:
-            refs = []
-            for cid in msg.references_used:
-                if cid in cite_index:
-                    refs.append(f"[{cid}]")
-                else:
-                    refs.append(f"[{cid}?]")
-            lines.append(f"\n*Sources: {', '.join(refs)}*\n")
+        refs = []
+        for cid in msg.references_used:
+            if cid in cite_index:
+                refs.append(f"[{cid}]")
+            else:
+                refs.append(f"[{cid}?]")
+        sources_line = ", ".join(refs) if refs else "(none)"
+        lines.append(f"\n*Sources: {sources_line}*\n")
         
         if msg.proposed_clauses:
             lines.append("\n**Proposed Clauses:**\n")
@@ -80,8 +93,17 @@ def save_transcript(state: DebateState, run_dir: Path) -> Path:
                 lines.append(f"- {clause.text}\n")
     
     lines.append("\n---\n\n## References\n\n")
-    for cid, c in cite_index.items():
-        lines.append(f"- [{cid}] {c.title} ({c.url})\n")
+    used_ids = []
+    for msg in state.get("messages", []):
+        for cid in msg.references_used:
+            if cid not in used_ids:
+                used_ids.append(cid)
+    for cid in used_ids:
+        c = cite_index.get(cid)
+        if c:
+            lines.append(f"- [{cid}] {c.title} ({c.url})\n")
+        else:
+            lines.append(f"- [{cid}] Unknown source\n")
     
     with open(path, "w") as f:
         f.writelines(lines)
@@ -139,7 +161,7 @@ def save_summary(state: DebateState, run_dir: Path) -> Path:
     scorecards = state.get("scorecards", [])
     audit = state.get("audit", [])
     treaty = state.get("treaty")
-    citations = collect_all_citations(state)
+    citations = collect_used_citations(state)
     
     lines = [f"# Debate Summary\n\n"]
     lines.append(f"**Scenario**: {scenario.name}\n\n")

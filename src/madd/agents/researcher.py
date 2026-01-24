@@ -44,29 +44,51 @@ class ProfileLLMOutput(BaseModel):
     negotiation_priorities: list[str] = []
 
 
-RESEARCH_TOPICS = {
+BASE_RESEARCH_TOPICS = {
     "economy": "GDP economy trade industries",
     "leaders": "government president prime minister leaders",
     "alliances": "foreign policy alliances treaties international relations",
     "history": "military conflicts history wars",
 }
 
+MARITIME_RESEARCH_TOPICS = {
+    "maritime_law": "UNCLOS freedom of navigation EEZ territorial sea transit passage",
+    "regional_process": "ASEAN South China Sea code of conduct joint statement",
+    "incident_safety": "CUES incidents at sea hotline search and rescue maritime safety",
+    "environment": "marine pollution reef protection destructive fishing biodiversity",
+}
 
-def generate_profile(country_name: str, scenario_description: str) -> CountryProfile:
+
+def _select_research_topics(scenario_name: str, scenario_description: str) -> dict[str, str]:
+    text = f"{scenario_name} {scenario_description}".lower()
+    topics = dict(BASE_RESEARCH_TOPICS)
+    if any(token in text for token in ("sea", "maritime", "shipping", "eez", "naval", "navigation")):
+        topics.update(MARITIME_RESEARCH_TOPICS)
+    return topics
+
+
+def generate_profile(country_name: str, scenario_description: str, scenario_name: str | None = None) -> CountryProfile:
     settings = get_settings()
     
     topic_citations: dict[str, list[Citation]] = {}
     research_context = ""
     
-    for topic_key, topic_query in RESEARCH_TOPICS.items():
+    topics = _select_research_topics(scenario_name or "", scenario_description)
+    scenario_context = scenario_name or ""
+    
+    for topic_key, topic_query in topics.items():
         try:
-            text, cites = search_country_info(country_name, topic_key, query_hint=topic_query)
+            text, cites = search_country_info(
+                country_name,
+                topic_key,
+                query_hint=topic_query,
+                scenario_context=scenario_context,
+            )
             research_context += f"\n{topic_key.upper()}:\n{text}\n"
             topic_citations[topic_key] = cites
         except Exception as e:
             print(f"  Research failed for {topic_key}: {e}")
             traceback.print_exc()
-            topic_citations[topic_key] = []
             topic_citations[topic_key] = []
     
     llm = ChatOpenAI(
@@ -83,8 +105,10 @@ Generate a country profile based on the research data provided.
 Only include information supported by the research context.
 If data is not available, leave fields empty/null."""
 
+    scenario_label = scenario_name or "Scenario"
     user_prompt = f"""Country: {country_name}
-Scenario: {scenario_description}
+Scenario: {scenario_label}
+Scenario Description: {scenario_description}
 
 Research Data:
 {research_context[:8000]}
@@ -122,6 +146,12 @@ Generate the profile fields."""
         treaties=output.treaties,
         international_memberships=output.international_memberships,
         citations=topic_citations.get("alliances", []),
+        scenario_citations=(
+            topic_citations.get("maritime_law", [])
+            + topic_citations.get("regional_process", [])
+            + topic_citations.get("incident_safety", [])
+            + topic_citations.get("environment", [])
+        ),
         leaders_citations=topic_citations.get("leaders", []),
         history_citations=topic_citations.get("history", []),
     )

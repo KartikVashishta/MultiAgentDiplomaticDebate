@@ -26,6 +26,7 @@ class DebateState(TypedDict):
     scorecards: Annotated[list[RoundScorecard], operator.add]
     audit: Annotated[list[AuditFinding], operator.add]
     max_rounds: int
+    clause_counter: int
 
 
 def create_initial_state(scenario: Scenario) -> DebateState:
@@ -38,4 +39,5 @@ def create_initial_state(scenario: Scenario) -> DebateState:
         scorecards=[],
         audit=[],
         max_rounds=scenario.max_rounds,
+        clause_counter=0,
     )

@@ -3,6 +3,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 from openai import OpenAI
 
@@ -26,11 +27,58 @@ DEFAULT_GOVERNMENT_DOMAINS = [
     "state.gov",
     "europa.eu",
     "foreignaffairs.gov",
+    "fmprc.gov.cn",
+    "diplomatie.gouv.fr",
+]
+
+DEFAULT_MARITIME_LAW_DOMAINS = [
+    "un.org",
+    "itlos.org",
+    "icj-cij.org",
+    "pca-cpa.org",
+    "imo.org",
+]
+
+DEFAULT_REGIONAL_DOMAINS = [
+    "asean.org",
+]
+
+DEFAULT_SAFETY_DOMAINS = [
+    "imo.org",
+    "asean.org",
+    "un.org",
+]
+
+DEFAULT_ENVIRONMENT_DOMAINS = [
+    "unep.org",
+    "un.org",
+    "imo.org",
 ]
 
 
 def _citation_id_from_url(url: str) -> str:
     return f"cite_{hashlib.sha256(url.encode()).hexdigest()[:10]}"
+
+
+def _pick(obj, keys: list[str]) -> str:
+    if isinstance(obj, dict):
+        for key in keys:
+            val = obj.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+        return ""
+    for key in keys:
+        val = getattr(obj, key, None)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    return ""
+
+
+def _title_from_url(url: str) -> str:
+    if not url:
+        return "Source"
+    host = urlparse(url).netloc
+    return host or "Source"
 
 
 def _cache_key(query: str, allowed_domains: list[str] | None, user_location: str | None = None) -> str:
@@ -76,6 +124,7 @@ def _save_cache(cache_key: str, text: str, citations: list[Citation]) -> None:
 
 def _parse_sources_from_response(response, topic: str | None, now: datetime) -> list[Citation]:
     citations: list[Citation] = []
+    fallback_text = _extract_text_from_response(response)
 
     output_items = getattr(response, "output", None) or []
     for item in output_items:
@@ -83,14 +132,13 @@ def _parse_sources_from_response(response, topic: str | None, now: datetime) -> 
             action = getattr(item, "action", None)
             sources = getattr(action, "sources", None) or []
             for src in sources:
-                if isinstance(src, dict):
-                    url = src.get("url") or ""
-                    title = src.get("title") or "Source"
-                    snippet = src.get("snippet") or ""
-                else:
-                    url = getattr(src, "url", "") or ""
-                    title = getattr(src, "title", "") or "Source"
-                    snippet = getattr(src, "snippet", "") or ""
+                url = _pick(src, ["url", "link", "href"])
+                title = _pick(src, ["title", "name", "source", "site", "site_name", "publisher"])
+                snippet = _pick(src, ["snippet", "summary", "description", "text", "content", "excerpt"])
+                if not title:
+                    title = _title_from_url(url)
+                if not snippet and fallback_text:
+                    snippet = fallback_text[:300]
                 if url:
                     citations.append(
                         Citation(
@@ -105,23 +153,25 @@ def _parse_sources_from_response(response, topic: str | None, now: datetime) -> 
             continue
 
         for block in (getattr(item, "content", None) or []):
-            for ann in (getattr(block, "annotations", None) or []):
+            annotations = getattr(block, "annotations", None) or []
+            for ann in annotations:
                 ann_type = ann.get("type", "") if isinstance(ann, dict) else getattr(ann, "type", "")
                 if ann_type != "url_citation":
                     continue
-                if isinstance(ann, dict):
-                    url = ann.get("url") or ""
-                    title = ann.get("title") or "Source"
-                else:
-                    url = getattr(ann, "url", "") or ""
-                    title = getattr(ann, "title", "") or "Source"
+                url = _pick(ann, ["url", "link", "href"])
+                title = _pick(ann, ["title", "name", "source", "site", "site_name", "publisher"])
+                if not title:
+                    title = _title_from_url(url)
+                snippet = ""
+                if fallback_text:
+                    snippet = fallback_text[:300]
                 if url:
                     citations.append(
                         Citation(
                             id=_citation_id_from_url(url),
                             title=title,
                             url=url,
-                            snippet="",
+                            snippet=snippet[:500],
                             retrieved_at=now,
                             topic=topic,
                         )
@@ -217,6 +267,7 @@ def search_country_info(
     topic_key: str,
     query_hint: str | None = None,
     allowed_domains: list[str] | None = None,
+    scenario_context: str | None = None,
 ) -> tuple[str, list[Citation]]:
     """Search for country information with domain filtering by topic.
     
@@ -229,15 +280,20 @@ def search_country_info(
     Returns:
         Tuple of (text_content, citations).
     """
-    if topic_key == "economy":
-        domains = allowed_domains or DEFAULT_ECONOMIC_DOMAINS
-    elif topic_key == "leaders":
-        domains = allowed_domains or DEFAULT_GOVERNMENT_DOMAINS
-    else:
-        domains = allowed_domains
+    topic_domains = {
+        "economy": DEFAULT_ECONOMIC_DOMAINS,
+        "leaders": DEFAULT_GOVERNMENT_DOMAINS,
+        "alliances": DEFAULT_GOVERNMENT_DOMAINS,
+        "maritime_law": DEFAULT_MARITIME_LAW_DOMAINS,
+        "regional_process": DEFAULT_REGIONAL_DOMAINS,
+        "incident_safety": DEFAULT_SAFETY_DOMAINS,
+        "environment": DEFAULT_ENVIRONMENT_DOMAINS,
+    }
+    domains = allowed_domains or topic_domains.get(topic_key)
 
     hint = query_hint or topic_key
-    query = f"{country_name} {hint} latest most recent official data"
+    prefix = f"{scenario_context} " if scenario_context else ""
+    query = f"{prefix}{country_name} {hint} latest most recent official data"
     return web_search(
         query=query,
         max_results=5,

@@ -1,4 +1,5 @@
 from typing import cast
+import re
 
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
@@ -19,6 +20,33 @@ class FindingOutput(BaseModel):
 
 class VerifierLLMOutput(BaseModel):
     findings: list[FindingOutput] = []
+
+
+FACTUAL_KEYWORDS = [
+    "unclos",
+    "eez",
+    "exclusive economic zone",
+    "territorial sea",
+    "contiguous zone",
+    "high seas",
+    "transit passage",
+    "innocent passage",
+    "arbitration",
+    "itlos",
+    "icj",
+    "pca",
+    "code of conduct",
+    "asean",
+    "mmsac",
+    "mmacc",
+]
+
+
+def _requires_citation(text: str) -> bool:
+    lowered = text.lower()
+    if re.search(r"\d", lowered):
+        return True
+    return any(keyword in lowered for keyword in FACTUAL_KEYWORDS)
 
 
 def verify_claims(state: DebateState) -> list[AuditFinding]:
@@ -58,17 +86,27 @@ def verify_claims(state: DebateState) -> list[AuditFinding]:
             ))
         
         if not refs_used:
-            findings.append(AuditFinding(
-                severity=AuditSeverity.WARNING,
-                category="unsupported_claim",
-                description=f"{m.country} made statements without any citation references",
-                country=m.country,
-                round_number=current_round,
-                evidence=[
-                    f"Statement snippet: \"{m.public_statement[:150]}...\"",
-                    "references_used: []",
-                ],
-            ))
+            if not valid_citation_ids:
+                findings.append(AuditFinding(
+                    severity=AuditSeverity.WARNING,
+                    category="profile_missing_citations",
+                    description=f"{m.country} has no profile citations; verification is limited",
+                    country=m.country,
+                    round_number=current_round,
+                    evidence=[],
+                ))
+            elif _requires_citation(m.public_statement):
+                findings.append(AuditFinding(
+                    severity=AuditSeverity.WARNING,
+                    category="unsupported_claim",
+                    description=f"{m.country} made factual/legal statements without citations",
+                    country=m.country,
+                    round_number=current_round,
+                    evidence=[
+                        f"Statement snippet: \"{m.public_statement[:150]}...\"",
+                        "references_used: []",
+                    ],
+                ))
         else:
             unknown_ids = [cid for cid in refs_used if cid not in valid_citation_ids]
             if unknown_ids:

@@ -90,6 +90,51 @@ def test_transcript_marks_unknown_ids(tmp_path):
     assert "[unknown_citation_id?]" in content
 
 
+def test_transcript_references_only_used(tmp_path):
+    cite1 = Citation(
+        id="cite_used",
+        title="Used Source",
+        url="https://used.example",
+        snippet="Used snippet",
+    )
+    cite2 = Citation(
+        id="cite_unused",
+        title="Unused Source",
+        url="https://unused.example",
+        snippet="Unused snippet",
+    )
+    facts = CountryFacts(
+        name="TestLand",
+        citations=[cite1, cite2],
+    )
+    profile = CountryProfile(facts=facts)
+    
+    scenario = Scenario(
+        name="Test Scenario",
+        description="Testing",
+        countries=["TestLand", "OtherLand"],
+        max_rounds=1,
+    )
+    
+    state = create_initial_state(scenario)
+    state["profiles"] = {"TestLand": profile}
+    state["round"] = 1
+    
+    msg = DebateMessage(
+        round_number=1,
+        country="TestLand",
+        public_statement="We cite only the used source.",
+        references_used=["cite_used"],
+    )
+    state["messages"] = [msg]
+    
+    transcript_path = save_transcript(state, tmp_path)
+    content = transcript_path.read_text()
+    
+    assert "https://used.example" in content
+    assert "https://unused.example" not in content
+
+
 def test_build_citation_index():
     cite = Citation(id="cite_test123", title="Test", url="https://t.com", snippet="s")
     facts = CountryFacts(name="X", citations=[cite])

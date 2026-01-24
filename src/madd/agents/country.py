@@ -7,12 +7,14 @@ from pydantic import BaseModel, Field
 
 from madd.core.config import get_settings
 from madd.core.schemas import DebateMessage, CountryProfile, TreatyDraft, ProposedClause
+from madd.core.treaty_utils import get_votable_clauses, format_clause_lines
 from madd.core.state import DebateState
 
 
 class ProposedClauseOut(BaseModel):
     text: str
     rationale: str = ""
+    supersedes: Optional[str] = None
 
 
 class ClauseVoteOut(BaseModel):
@@ -47,11 +49,8 @@ def generate_turn(state: DebateState, country_name: str) -> DebateMessage:
     
     structured_llm = llm.with_structured_output(TurnLLMOutput, method="function_calling")
     
-    pending_clauses = [
-        f"- {c.id}: {c.text} (by {c.proposed_by})"
-        for c in treaty.clauses
-        if c.status.value == "proposed"
-    ]
+    votable_clauses = get_votable_clauses(treaty, current_round)
+    pending_clauses = format_clause_lines(votable_clauses)
     
     history_entries = [
         f"Round {m.round_number} - {m.country}: {m.public_statement[:300]}..."
@@ -60,10 +59,12 @@ def generate_turn(state: DebateState, country_name: str) -> DebateMessage:
     history = "\n".join(history_entries)
     
     all_citations = profile.all_citations()
-    citation_refs = "\n".join(
-        f"- {c.id}: {c.title} ({c.snippet[:80]}...)"
-        for c in all_citations[:12]
-    )
+    if not all_citations:
+        raise ValueError(f"Profile for {country_name} has no citations")
+    valid_ids = {c.id for c in all_citations if c.id}
+    scenario_citations = profile.facts.scenario_citations
+    preferred_citations = scenario_citations or all_citations
+    citation_refs = _format_citation_groups(profile, preferred_citations)
     
     facts_summary = [
         f"Region: {profile.facts.region or 'Unknown'}",
@@ -86,24 +87,25 @@ Scenario: {scenario.name}
 Your key interests: {', '.join(profile.strategy.core_policy_goals[:3])}
 Your allies: {', '.join(profile.strategy.key_allies[:3])}
 Your red lines: {', '.join(profile.strategy.red_lines[:3])}
+Use the institution name "MMSAC" consistently.
 Facts:
 {facts_summary_text}
 
-Available citations (use exact IDs only if they support your statement):
+Available citations (use exact IDs only if they support your statement; prefer Scenario/Law sources for legal claims):
 {citation_refs}
 
 Respond with:
 - public_statement: Your official diplomatic statement
 - private_intent: Your hidden strategy
 - proposed_clauses: List of clauses (each with "text" and "rationale")
-- clause_votes: Vote on pending clauses by ID ("support", "oppose", or "amend")
-- citation_ids_to_reference: List of citation IDs (e.g. "cite_abc123") that directly support your statement (leave empty if none are relevant)"""
+- clause_votes: Vote on votable clauses by ID ("support", "oppose", or "amend")
+- citation_ids_to_reference: List of citation IDs (e.g. "cite_abc123") that directly support your statement. If you cite UNCLOS, EEZs, dispute settlement, or legal obligations, include at least 2 citations. If you omit citations, your response will be rejected."""
 
     pending_str = "\n".join(pending_clauses) if pending_clauses else "None"
     
     user_prompt = f"""Round {current_round}
 
-Pending Clauses:
+Votable Clauses:
 {pending_str}
 
 Treaty So Far:
@@ -112,7 +114,7 @@ Treaty So Far:
 Recent History:
 {history if history else "No prior statements."}
 
-Generate your turn. For every pending clause ID listed, include exactly one vote."""
+Generate your turn. For every votable clause ID listed, include exactly one vote. If no votable clauses are listed, return an empty clause_votes object."""
 
     try:
         result = structured_llm.invoke([
@@ -127,14 +129,24 @@ Generate your turn. For every pending clause ID listed, include exactly one vote
         )
     
     proposed = [
-        ProposedClause(text=p.text, rationale=p.rationale)
+        ProposedClause(text=p.text, rationale=p.rationale, supersedes=p.supersedes)
         for p in (output.proposed_clauses or [])
         if p and p.text
     ]
     
-    references = [cid for cid in output.citation_ids_to_reference if isinstance(cid, str)]
+    references = _normalize_references(output.citation_ids_to_reference, valid_ids)
+    if not references:
+        references = [c.id for c in preferred_citations if c.id][:2]
+    if not references:
+        raise ValueError(f"No valid citations available for {country_name}")
     
     clause_votes = _normalize_clause_votes(output.clause_votes)
+    votable_ids = {c.id for c in votable_clauses}
+    clause_votes = _enforce_vote_policy(
+        clause_votes,
+        votable_ids,
+        strict=settings.strict_votes,
+    )
     
     return DebateMessage(
         round_number=current_round,
@@ -152,7 +164,7 @@ Generate your turn. For every pending clause ID listed, include exactly one vote
 
 def _normalize_clause_votes(raw_votes: dict[str, str] | list[Any]) -> dict[str, str]:
     if isinstance(raw_votes, dict):
-        return {str(k): str(v) for k, v in raw_votes.items() if k and v}
+        return {str(k): str(v).strip().lower() for k, v in raw_votes.items() if k and v}
     if not isinstance(raw_votes, list):
         return {}
     
@@ -168,5 +180,77 @@ def _normalize_clause_votes(raw_votes: dict[str, str] | list[Any]) -> dict[str, 
             clause_id = None
             vote = None
         if clause_id and vote:
-            votes[str(clause_id)] = str(vote)
+            votes[str(clause_id)] = str(vote).strip().lower()
     return votes
+
+
+def _normalize_references(raw_ids: list[Any] | None, valid_ids: set[str]) -> list[str]:
+    if not raw_ids:
+        return []
+    seen: set[str] = set()
+    refs: list[str] = []
+    for item in raw_ids:
+        if not isinstance(item, str):
+            continue
+        cid = _normalize_citation_id(item)
+        if cid and cid in valid_ids and cid not in seen:
+            seen.add(cid)
+            refs.append(cid)
+    return refs
+
+
+def _normalize_citation_id(raw_id: str) -> str:
+    cid = raw_id.strip()
+    if cid.startswith("[") and cid.endswith("]"):
+        cid = cid[1:-1]
+    cid = cid.strip().strip(",.;")
+    return cid
+
+
+def _enforce_vote_policy(
+    clause_votes: dict[str, str],
+    votable_ids: set[str],
+    strict: bool,
+) -> dict[str, str]:
+    if not votable_ids:
+        return {}
+    votes: dict[str, str] = {}
+    extras = set(clause_votes) - votable_ids
+    if extras and strict:
+        raise ValueError(f"Votes include non-votable clause IDs: {sorted(extras)}")
+    for cid, vote in clause_votes.items():
+        if cid not in votable_ids:
+            continue
+        if vote not in {"support", "oppose", "amend", "abstain"}:
+            if strict:
+                raise ValueError(f"Invalid vote '{vote}' for {cid}")
+            vote = "abstain"
+        votes[cid] = vote
+    missing = votable_ids - set(votes)
+    if missing:
+        if strict:
+            raise ValueError(f"Missing votes for clauses: {sorted(missing)}")
+        for cid in missing:
+            votes[cid] = "abstain"
+    return votes
+
+
+def _format_citation_groups(profile: CountryProfile, fallback: list) -> str:
+    groups = [
+        ("Scenario/Law", profile.facts.scenario_citations),
+        ("Leaders", profile.facts.leaders_citations),
+        ("Economy", profile.facts.economy.citations),
+        ("History", profile.facts.history_citations),
+        ("Other", profile.facts.citations),
+    ]
+    lines: list[str] = []
+    for label, citations in groups:
+        if not citations:
+            continue
+        lines.append(f"{label}:")
+        for c in citations[:4]:
+            lines.append(f"- {c.id}: {c.title} ({c.snippet[:80]}...)")
+    if not lines:
+        for c in fallback[:8]:
+            lines.append(f"- {c.id}: {c.title} ({c.snippet[:80]}...)")
+    return "\n".join(lines)

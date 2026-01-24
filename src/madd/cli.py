@@ -1,13 +1,19 @@
 import argparse
+import logging
+import sys
+import traceback
 from pathlib import Path
 
 from madd.core.scenario import load_scenario
 from madd.core.state import create_initial_state
 from madd.core.graph import build_graph
 from madd.stores.run_store import create_run_dir, save_all_outputs
+from madd.core.config import get_settings
 
 
 def main():
+    settings = get_settings()
+    logging.basicConfig(level=logging.DEBUG if settings.debug else logging.INFO)
     parser = argparse.ArgumentParser(
         prog="madd",
         description="Multi-Agent Diplomatic Debate"
@@ -50,8 +56,13 @@ def main():
     
     print("Running debate...\n")
     final_state = None
-    for event in graph.stream(initial_state, stream_mode="values"):
-        final_state = event
+    try:
+        for event in graph.stream(initial_state, stream_mode="values"):
+            final_state = event
+    except Exception as e:
+        print(f"Error during debate: {e}", file=sys.stderr)
+        traceback.print_exc()
+        raise SystemExit(1)
     
     if final_state:
         print("\nSaving outputs...")

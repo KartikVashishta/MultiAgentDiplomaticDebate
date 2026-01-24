@@ -3,13 +3,19 @@ import json
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from madd.stores.profile_store import load_profile, save_profile, get_profile_path
+from madd.stores.profile_store import load_profile, save_profile, get_profile_path, make_scenario_key
 from madd.core.schemas import CountryProfile, CountryFacts, CountryStrategy
 
 
 def test_profile_path():
     path = get_profile_path("United States")
     assert "united_states.json" in str(path)
+
+
+def test_profile_path_with_scenario_key():
+    key = make_scenario_key("Test Scenario", "Desc")
+    path = get_profile_path("United States", scenario_key=key)
+    assert key in str(path)
 
 
 def test_save_and_load_profile(tmp_path):

@@ -21,11 +21,12 @@ def test_country_profile_all_citations():
         name="Test",
         economy=EconomicData(citations=[Citation(title="GDP", url="https://a.com", snippet="x")]),
         citations=[Citation(title="Treaty", url="https://b.com", snippet="y")],
+        scenario_citations=[Citation(title="UNCLOS", url="https://c.com", snippet="z")],
         leaders_citations=[Citation(title="Leader", url="https://c.com", snippet="z")],
     )
     profile = CountryProfile(facts=facts)
     all_cites = profile.all_citations()
-    assert len(all_cites) == 3
+    assert len(all_cites) == 4
 
 
 def test_scenario_load(tmp_path):

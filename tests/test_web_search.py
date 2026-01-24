@@ -200,3 +200,21 @@ def test_parse_sources_handles_none_annotations():
     citations = _parse_sources_from_response(mock_response, "leaders", datetime.now(timezone.utc))
     
     assert citations == []
+
+
+def test_parse_sources_key_mapping_populates_title_snippet():
+    mock_action = MagicMock()
+    mock_action.sources = [
+        {"link": "https://un.org/los", "name": "UNCLOS", "text": "Law of the Sea framework."}
+    ]
+    mock_item = MagicMock()
+    mock_item.type = "web_search_call"
+    mock_item.action = mock_action
+    mock_response = MagicMock()
+    mock_response.output = [mock_item]
+    
+    citations = _parse_sources_from_response(mock_response, "maritime_law", datetime.now(timezone.utc))
+    
+    assert citations
+    assert citations[0].title == "UNCLOS"
+    assert citations[0].snippet.startswith("Law of the Sea")

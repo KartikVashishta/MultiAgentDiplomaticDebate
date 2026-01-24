@@ -40,6 +40,7 @@ class CountryFacts(BaseModel):
     treaties: list[str] = Field(default_factory=list)
     international_memberships: list[str] = Field(default_factory=list)
     citations: list[Citation] = Field(default_factory=list)
+    scenario_citations: list[Citation] = Field(default_factory=list)
     leaders_citations: list[Citation] = Field(default_factory=list)
     history_citations: list[Citation] = Field(default_factory=list)
 
@@ -66,7 +67,8 @@ class CountryProfile(BaseModel):
     version: int = Field(default=1)
     
     def all_citations(self) -> list[Citation]:
-        cites = list(self.facts.citations)
+        cites = list(self.facts.scenario_citations)
+        cites.extend(self.facts.citations)
         cites.extend(self.facts.economy.citations)
         cites.extend(self.facts.leaders_citations)
         cites.extend(self.facts.history_citations)
@@ -91,6 +93,7 @@ class Clause(BaseModel):
     amendments: list[str] = Field(default_factory=list)
     proposed_round: int
     resolved_round: Optional[int] = None
+    supersedes: Optional[str] = None
 
 
 class TreatyDraft(BaseModel):
@@ -144,6 +147,7 @@ class AuditFinding(BaseModel):
 class ProposedClause(BaseModel):
     text: str
     rationale: str = ""
+    supersedes: Optional[str] = None
 
 
 class DebateMessage(BaseModel):

@@ -8,11 +8,11 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     
     # Role-based models (override via env vars)
-    research_model: str = Field(default="gpt-4o-search-preview", alias="MADD_RESEARCH_MODEL")
-    turn_model: str = Field(default="gpt-4o", alias="MADD_TURN_MODEL")
-    judge_model: str = Field(default="gpt-4o", alias="MADD_JUDGE_MODEL")
-    verify_model: str = Field(default="gpt-4o-mini", alias="MADD_VERIFY_MODEL")
-    search_model: str = Field(default="gpt-4o", alias="MADD_SEARCH_MODEL")
+    research_model: str = Field(default="gpt-5-mini", alias="MADD_RESEARCH_MODEL")
+    turn_model: str = Field(default="gpt-5-mini", alias="MADD_TURN_MODEL")
+    judge_model: str = Field(default="gpt-5-mini", alias="MADD_JUDGE_MODEL")
+    verify_model: str = Field(default="gpt-5-mini", alias="MADD_VERIFY_MODEL")
+    search_model: str = Field(default="gpt-5-mini", alias="MADD_SEARCH_MODEL")
     
     # Temperature per role
     research_temperature: float = Field(default=0.3, alias="MADD_RESEARCH_TEMP")
@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     # Behavior
     max_retries: int = Field(default=3, alias="MADD_MAX_RETRIES")
     debug: bool = Field(default=False, alias="MADD_DEBUG")
+    strict_votes: bool = Field(default=False, alias="MADD_STRICT_VOTES")
     
     model_config = {
         "env_file": ".env",

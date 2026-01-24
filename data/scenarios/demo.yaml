@@ -1,26 +1,25 @@
-name: "South China Sea Trade Routes"
+name: 'Arctic Resource Exploitation'
 description: |
-  Multiple nations contest access to critical maritime trade routes in the South China Sea.
-  This scenario involves negotiating a treaty that balances security concerns, economic 
-  interests, and sovereignty claims. Countries must find common ground on freedom of 
-  navigation, exclusive economic zones, and potential joint enforcement mechanisms.
+  As climate change melts Arctic ice, nations vie for control over newly accessible resources and shipping routes.
+  This scenario focuses on negotiating an agreement that addresses territorial claims, sustainable development,
+  and environmental safeguards while preventing potential conflicts over oil, gas, and minerals.
 
 countries:
-  - United States
-  - China
-  - France
+  - Russia
+  - Canada
+  - Norway
 
 max_rounds: 3
 
 agenda:
-  - topic: "Freedom of navigation in international waters"
-    description: "Establishing principles for unimpeded passage through disputed waters"
+  - topic: 'Territorial claims and extended continental shelves'
+    description: 'Resolving overlapping claims to Arctic seabed and waters'
     priority: 1
-    
-  - topic: "Exclusive economic zone boundaries"
-    description: "Defining and respecting EEZ claims and overlaps"
+
+  - topic: 'Resource extraction and sharing mechanisms'
+    description: 'Establishing rules for mining, drilling, and revenue distribution'
     priority: 2
-    
-  - topic: "Joint patrol and enforcement agreements"
-    description: "Creating mechanisms for shared security responsibilities"
+
+  - topic: 'Environmental protection and climate monitoring'
+    description: 'Implementing joint measures to preserve the Arctic ecosystem'
     priority: 3

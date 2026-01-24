@@ -26,6 +26,7 @@ pytest tests/
 - **Web search with citations**: GA OpenAI web_search tool with caching and per-field citations
 - **Structured outputs**: Pydantic schemas for all data (profiles, messages, treaties, scorecards, audits)
 - **Transcript with references**: Citation IDs resolved to sources in output
+- **Scenario-aware profiles**: Cached profiles keyed by scenario to avoid stale citations
 
 ---
 
@@ -60,18 +61,27 @@ madd data/scenarios/demo.yaml --rounds 5
 madd data/scenarios/demo.yaml --output-dir my_output
 ```
 
+## Golden Run Example
+
+```bash
+# South China Sea demo (3 rounds)
+madd data/scenarios/demo.yaml --rounds 3
+```
+
 ---
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OPENAI_API_KEY` | (required) | OpenAI API key |
-| `MADD_RESEARCH_MODEL` | `gpt-4o-search-preview` | Model for profile research |
-| `MADD_TURN_MODEL` | `gpt-4o` | Model for country turns |
-| `MADD_JUDGE_MODEL` | `gpt-4o` | Model for scoring |
-| `MADD_VERIFY_MODEL` | `gpt-4o-mini` | Model for verification |
-| `MADD_SEARCH_CACHE` | `true` | Enable web search caching |
+| Variable              | Default      | Description                                                    |
+| --------------------- | ------------ | -------------------------------------------------------------- |
+| `OPENAI_API_KEY`      | (required)   | OpenAI API key                                                 |
+| `MADD_RESEARCH_MODEL` | `gpt-5-mini` | Model for profile research                                     |
+| `MADD_TURN_MODEL`     | `gpt-5-mini` | Model for country turns                                        |
+| `MADD_JUDGE_MODEL`    | `gpt-5-mini` | Model for scoring                                              |
+| `MADD_VERIFY_MODEL`   | `gpt-5-mini` | Model for verification                                         |
+| `MADD_SEARCH_MODEL`   | `gpt-5-mini` | Model for web search                                           |
+| `MADD_SEARCH_CACHE`   | `true`       | Enable web search caching                                      |
+| `MADD_STRICT_VOTES`   | `false`      | Enforce votes for all votable clauses (error on missing/extra) |
 
 ---
 
@@ -79,15 +89,15 @@ madd data/scenarios/demo.yaml --output-dir my_output
 
 Each run produces `output/run_YYYYMMDD_HHMMSS/`:
 
-| File | Description |
-|------|-------------|
-| `state.json` | Full state snapshot |
-| `sources.json` | All citations used |
-| `transcript.md` | Debate with citation references |
-| `treaty.md` | Final treaty draft |
-| `scorecards.json` | Round-by-round scores |
-| `audit.json` | Verifier findings |
-| `summary.md` | Executive summary |
+| File              | Description                     |
+| ----------------- | ------------------------------- |
+| `state.json`      | Full state snapshot             |
+| `sources.json`    | All citations used              |
+| `transcript.md`   | Debate with citation references |
+| `treaty.md`       | Final treaty draft              |
+| `scorecards.json` | Round-by-round scores           |
+| `audit.json`      | Verifier findings               |
+| `summary.md`      | Executive summary               |
 
 ---
 
