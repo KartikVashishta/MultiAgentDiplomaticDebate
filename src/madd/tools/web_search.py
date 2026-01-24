@@ -12,48 +12,13 @@ from madd.core.schemas import Citation
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_ECONOMIC_DOMAINS = [
-    "worldbank.org",
-    "imf.org",
-    "un.org",
-    "oecd.org",
-    "cia.gov",
-    "data.gov",
-    "statista.com",
-]
+DEFAULT_LAW_DOMAINS = ["un.org", "icj-cij.org", "itlos.org", "pca-cpa.org"]
+DEFAULT_SECURITY_DOMAINS = ["nato.int", "state.gov", "defense.gov", "gov.uk", "europa.eu", "un.org"]
+DEFAULT_ECON_DOMAINS = ["worldbank.org", "imf.org", "oecd.org", "data.worldbank.org"]
+DEFAULT_ENV_DOMAINS = ["unep.org", "ipcc.ch", "un.org"]
+DEFAULT_RIGHTS_DOMAINS = ["ohchr.org", "ilo.org", "un.org", "icrc.org"]
 
-DEFAULT_GOVERNMENT_DOMAINS = [
-    "gov.uk",
-    "state.gov",
-    "europa.eu",
-    "foreignaffairs.gov",
-    "fmprc.gov.cn",
-    "diplomatie.gouv.fr",
-]
-
-DEFAULT_MARITIME_LAW_DOMAINS = [
-    "un.org",
-    "itlos.org",
-    "icj-cij.org",
-    "pca-cpa.org",
-    "imo.org",
-]
-
-DEFAULT_REGIONAL_DOMAINS = [
-    "asean.org",
-]
-
-DEFAULT_SAFETY_DOMAINS = [
-    "imo.org",
-    "asean.org",
-    "un.org",
-]
-
-DEFAULT_ENVIRONMENT_DOMAINS = [
-    "unep.org",
-    "un.org",
-    "imo.org",
-]
+DEFAULT_ECONOMIC_DOMAINS = DEFAULT_ECON_DOMAINS
 
 
 def _citation_id_from_url(url: str) -> str:
@@ -281,13 +246,33 @@ def search_country_info(
         Tuple of (text_content, citations).
     """
     topic_domains = {
-        "economy": DEFAULT_ECONOMIC_DOMAINS,
-        "leaders": DEFAULT_GOVERNMENT_DOMAINS,
-        "alliances": DEFAULT_GOVERNMENT_DOMAINS,
-        "maritime_law": DEFAULT_MARITIME_LAW_DOMAINS,
-        "regional_process": DEFAULT_REGIONAL_DOMAINS,
-        "incident_safety": DEFAULT_SAFETY_DOMAINS,
-        "environment": DEFAULT_ENVIRONMENT_DOMAINS,
+        "economy": DEFAULT_ECON_DOMAINS,
+        "leaders": DEFAULT_SECURITY_DOMAINS,
+        "alliances": DEFAULT_SECURITY_DOMAINS,
+        "history": DEFAULT_SECURITY_DOMAINS,
+        "law": DEFAULT_LAW_DOMAINS,
+        "environment": DEFAULT_ENV_DOMAINS,
+        "human_rights": DEFAULT_RIGHTS_DOMAINS,
+        "defense_posture": DEFAULT_SECURITY_DOMAINS,
+        "confidence_building": DEFAULT_SECURITY_DOMAINS,
+        "incident_history": DEFAULT_SECURITY_DOMAINS,
+        "defense_agreements": DEFAULT_SECURITY_DOMAINS,
+        "border_law": DEFAULT_LAW_DOMAINS,
+        "treaty_law": DEFAULT_LAW_DOMAINS,
+        "mining_law": DEFAULT_ECON_DOMAINS,
+        "critical_minerals": DEFAULT_ECON_DOMAINS,
+        "supply_chain": DEFAULT_ECON_DOMAINS,
+        "esg": DEFAULT_ECON_DOMAINS,
+        "trade_policy": DEFAULT_ECON_DOMAINS,
+        "sanctions": DEFAULT_ECON_DOMAINS,
+        "investment_screening": DEFAULT_ECON_DOMAINS,
+        "monitoring": DEFAULT_ENV_DOMAINS,
+        "grievance": DEFAULT_RIGHTS_DOMAINS,
+        "cyber_policy": DEFAULT_SECURITY_DOMAINS,
+        "technology_transfer": DEFAULT_ECON_DOMAINS,
+        "water_sharing": DEFAULT_LAW_DOMAINS,
+        "energy_grid": DEFAULT_ECON_DOMAINS,
+        "food_security": DEFAULT_ECON_DOMAINS,
     }
     domains = allowed_domains or topic_domains.get(topic_key)
 

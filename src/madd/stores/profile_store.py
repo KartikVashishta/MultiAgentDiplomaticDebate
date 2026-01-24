@@ -59,6 +59,7 @@ def ensure_profile(
     scenario_description: str,
     scenario_name: str | None = None,
     scenario_key: str | None = None,
+    router_plan: "RouterPlan | None" = None,
 ) -> CountryProfile:
     from madd.agents.researcher import generate_profile
     
@@ -70,7 +71,12 @@ def ensure_profile(
     
     profile = None
     for attempt in range(2):
-        profile = generate_profile(country_name, scenario_description, scenario_name=scenario_name)
+        profile = generate_profile(
+            country_name,
+            scenario_description,
+            scenario_name=scenario_name,
+            router_plan=router_plan,
+        )
         if profile.all_citations():
             break
     if not profile or not profile.all_citations():

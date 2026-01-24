@@ -34,7 +34,7 @@ def test_graph_runs_all_rounds(monkeypatch):
     )
     state = create_initial_state(scenario)
 
-    def fake_ensure_profile(country, scenario_description, scenario_name=None, scenario_key=None):
+    def fake_ensure_profile(country, scenario_description, scenario_name=None, scenario_key=None, router_plan=None):
         return _make_profile(country)
 
     def fake_generate_turn(state, country):
@@ -63,6 +63,7 @@ def test_graph_runs_all_rounds(monkeypatch):
     monkeypatch.setattr("madd.core.graph.generate_turn", fake_generate_turn)
     monkeypatch.setattr("madd.core.graph.evaluate_round", fake_evaluate_round)
     monkeypatch.setattr("madd.core.graph.verify_claims", fake_verify_claims)
+    monkeypatch.setattr("madd.core.graph.refine_treaty", lambda state: "Treaty text")
 
     graph = build_graph()
     final_state = graph.invoke(state)

@@ -6,15 +6,14 @@ from langgraph.graph import StateGraph, END
 from madd.core.state import DebateState
 from madd.core.schemas import AuditFinding, AuditSeverity, Clause, ClauseStatus, TreatyDraft
 from madd.stores.profile_store import ensure_profile, make_scenario_key
+from madd.core.scenario_router import build_router_plan, DEFAULT_INSTITUTION_NAME
 from madd.core.treaty_utils import get_votable_clauses
 from madd.agents.country import generate_turn
 from madd.agents.judge import evaluate_round
 from madd.agents.verifier import verify_claims
+from madd.agents.treaty_refiner import refine_treaty
 
 logger = logging.getLogger(__name__)
-
-INSTITUTION_NAME = "MMSAC"
-
 
 def _log_state(event: str, state: DebateState) -> None:
     round_number = state.get("round", 0)
@@ -44,6 +43,7 @@ def build_graph() -> StateGraph:
     graph.add_node("compile_treaty", _compile_treaty)
     graph.add_node("verify", _verify)
     graph.add_node("judge", _judge)
+    graph.add_node("refine_treaty", _refine_treaty)
     graph.add_node("finalize_report", _finalize_report)
     
     graph.set_entry_point("ensure_profiles")
@@ -57,10 +57,11 @@ def build_graph() -> StateGraph:
         _should_continue,
         {
             "continue": "negotiate_round",
-            "finalize": "finalize_report",
+            "finalize": "refine_treaty",
         }
     )
     graph.add_edge("negotiate_round", "compile_treaty")
+    graph.add_edge("refine_treaty", "finalize_report")
     graph.add_edge("finalize_report", END)
     
     return graph.compile()
@@ -69,6 +70,7 @@ def build_graph() -> StateGraph:
 def _ensure_profiles(state: DebateState) -> dict:
     scenario = state["scenario"]
     profiles = {}
+    router_plan = build_router_plan(scenario)
     
     logger.info(f"Loading/generating profiles for {len(scenario.countries)} countries")
     _log_state("ensure_profiles.start", state)
@@ -81,12 +83,14 @@ def _ensure_profiles(state: DebateState) -> dict:
             scenario.description,
             scenario_name=scenario.name,
             scenario_key=scenario_key,
+            router_plan=router_plan,
         )
     
     updated = dict(state)
     updated["profiles"] = profiles
+    updated["router_plan"] = router_plan
     _log_state("ensure_profiles.end", updated)
-    return {"profiles": profiles}
+    return {"profiles": profiles, "router_plan": router_plan}
 
 
 def _opening_statements(state: DebateState) -> dict:
@@ -154,7 +158,8 @@ def _compile_treaty(state: DebateState) -> dict:
         for proposed in msg.proposed_clauses:
             clause_counter += 1
             clause_id = f"C{clause_counter}"
-            clause_text = _normalize_institution_name(proposed.text)
+            institution_name = _get_institution_name(state)
+            clause_text = _normalize_institution_name(proposed.text, institution_name)
             new_clause = Clause(
                 id=clause_id,
                 text=clause_text,
@@ -233,11 +238,19 @@ def _compile_treaty(state: DebateState) -> dict:
     return {"treaty": updated_treaty, "clause_counter": clause_counter}
 
 
-def _normalize_institution_name(text: str) -> str:
+def _normalize_institution_name(text: str, institution_name: str | None) -> str:
     if not text:
         return text
-    pattern = r"\b(mmacc|mmsac|asean maritime coordination centre)\b"
-    return re.sub(pattern, INSTITUTION_NAME, text, flags=re.IGNORECASE)
+    name = institution_name or DEFAULT_INSTITUTION_NAME
+    pattern = r"\b(joc|joint oversight commission|mmacc|mmsac|asean maritime coordination centre)\b"
+    return re.sub(pattern, name, text, flags=re.IGNORECASE)
+
+
+def _get_institution_name(state: DebateState) -> str:
+    router_plan = state.get("router_plan")
+    if router_plan and router_plan.institution_name:
+        return router_plan.institution_name
+    return DEFAULT_INSTITUTION_NAME
 
 
 def _verify(state: DebateState) -> dict:
@@ -282,6 +295,16 @@ def _judge(state: DebateState) -> dict:
         updated["scorecards"] = state.get("scorecards", []) + [scorecard]
         _log_state("judge.end", updated)
         return {"scorecards": [scorecard]}
+
+
+def _refine_treaty(state: DebateState) -> dict:
+    logger.info("Refining treaty into publication-ready draft")
+    _log_state("refine_treaty.start", state)
+    treaty_text = refine_treaty(state)
+    updated = dict(state)
+    updated["treaty_text"] = treaty_text
+    _log_state("refine_treaty.end", updated)
+    return {"treaty_text": treaty_text}
 
 
 def _finalize_report(state: DebateState) -> dict:

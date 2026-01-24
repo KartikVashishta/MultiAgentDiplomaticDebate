@@ -117,24 +117,28 @@ def save_transcript(state: DebateState, run_dir: Path) -> Path:
 def save_treaty(state: DebateState, run_dir: Path) -> Path:
     path = run_dir / "treaty.md"
     treaty = state.get("treaty")
+    treaty_text = state.get("treaty_text")
     
-    lines = ["# Final Treaty Draft\n\n"]
-    if treaty:
-        if treaty.title:
-            lines.append(f"## {treaty.title}\n\n")
-        if treaty.preamble:
-            lines.append(f"{treaty.preamble}\n\n")
-        lines.append("## Accepted Clauses\n\n")
-        for clause in treaty.accepted_clauses:
-            lines.append(f"**{clause.id}** (proposed by {clause.proposed_by})\n")
-            lines.append(f"> {clause.text}\n\n")
-        if treaty.pending_clauses:
-            lines.append("## Pending/Rejected Clauses\n\n")
-            for clause in treaty.clauses:
-                if clause.status.value != "accepted":
-                    lines.append(f"- [{clause.status.value}] {clause.text}\n")
+    if treaty_text:
+        lines = [treaty_text.rstrip() + "\n"]
     else:
-        lines.append("*No treaty was finalized.*\n")
+        lines = ["# Final Treaty Draft\n\n"]
+        if treaty:
+            if treaty.title:
+                lines.append(f"## {treaty.title}\n\n")
+            if treaty.preamble:
+                lines.append(f"{treaty.preamble}\n\n")
+            lines.append("## Accepted Clauses\n\n")
+            for clause in treaty.accepted_clauses:
+                lines.append(f"**{clause.id}** (proposed by {clause.proposed_by})\n")
+                lines.append(f"> {clause.text}\n\n")
+            if treaty.pending_clauses:
+                lines.append("## Pending/Rejected Clauses\n\n")
+                for clause in treaty.clauses:
+                    if clause.status.value != "accepted":
+                        lines.append(f"- [{clause.status.value}] {clause.text}\n")
+        else:
+            lines.append("*No treaty was finalized.*\n")
     
     with open(path, "w") as f:
         f.writelines(lines)

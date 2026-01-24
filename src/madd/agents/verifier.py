@@ -23,23 +23,27 @@ class VerifierLLMOutput(BaseModel):
     findings: list[FindingOutput] = []
 
 
-FACTUAL_KEYWORDS = [
+BASE_FACTUAL_KEYWORDS = [
+    "treaty",
+    "agreement",
+    "framework",
     "unclos",
     "eez",
     "exclusive economic zone",
     "territorial sea",
-    "contiguous zone",
-    "high seas",
-    "transit passage",
-    "innocent passage",
     "arbitration",
     "itlos",
     "icj",
     "pca",
-    "code of conduct",
-    "asean",
-    "mmsac",
-    "mmacc",
+    "sovereignty",
+    "sanctions",
+    "export control",
+    "fdi",
+    "basing",
+    "defense",
+    "eia",
+    "esia",
+    "fpic",
 ]
 
 LEADER_TITLES = [
@@ -52,11 +56,11 @@ LEADER_TITLES = [
 ]
 
 
-def _requires_citation(text: str) -> bool:
+def _requires_citation(text: str, keywords: list[str]) -> bool:
     lowered = text.lower()
     if re.search(r"\d", lowered):
         return True
-    return any(keyword in lowered for keyword in FACTUAL_KEYWORDS)
+    return any(keyword in lowered for keyword in keywords)
 
 
 def _mentions_named_leader(text: str) -> bool:
@@ -117,6 +121,9 @@ def verify_claims(state: DebateState) -> list[AuditFinding]:
         return []
     
     findings: list[AuditFinding] = []
+    router_plan = state.get("router_plan")
+    extra_keywords = router_plan.verifier_keywords if router_plan else []
+    keywords = BASE_FACTUAL_KEYWORDS + [k.lower() for k in extra_keywords]
     
     for m in messages:
         profile = state["profiles"].get(m.country)
@@ -146,7 +153,7 @@ def verify_claims(state: DebateState) -> list[AuditFinding]:
                     round_number=current_round,
                     evidence=[],
                 ))
-            elif _requires_citation(m.public_statement):
+            elif _requires_citation(m.public_statement, keywords):
                 findings.append(AuditFinding(
                     severity=AuditSeverity.WARNING,
                     category="unsupported_claim",
@@ -176,6 +183,7 @@ def verify_claims(state: DebateState) -> list[AuditFinding]:
     
     structured_llm = llm.with_structured_output(VerifierLLMOutput, method="function_calling")
     
+    contradiction_focus = _build_contradiction_focus(router_plan)
     system_prompt = """You are a fact-checking verifier.
 Detect:
 1. Contradictions between statements and country profile facts
@@ -187,7 +195,8 @@ Return findings with:
 - category: contradiction/inconsistency/factual_error
 - description: what the issue is
 - country: which country
-- evidence: list of specific quotes showing the issue"""
+- evidence: list of specific quotes showing the issue
+""" + (f"\nPrioritize contradiction checks: {contradiction_focus}" if contradiction_focus else "")
 
     context = ""
     message_map = {m.country: m for m in messages}
@@ -246,3 +255,21 @@ Check for contradictions and inconsistencies only (unsupported claims already ch
         ))
     
     return _dedupe_findings(findings)
+
+
+def _build_contradiction_focus(router_plan) -> str:
+    if not router_plan:
+        return ""
+    archetypes = {a.archetype for a in (router_plan.archetypes or []) if a.score >= 0.4}
+    focus = []
+    if "SECURITY_DEFENSE" in archetypes:
+        focus.append("approval vs notification, basing duration, force access conditions")
+    if "RESOURCES_MINERALS" in archetypes:
+        focus.append("licensing vs free access, audit rights vs confidentiality")
+    if "HUMAN_RIGHTS_COMMUNITY" in archetypes:
+        focus.append("consent vs consultation thresholds, grievance access")
+    if "TRADE_SANCTIONS_FINANCE" in archetypes:
+        focus.append("export control licensing vs unrestricted transfer")
+    if "ENVIRONMENT_CLIMATE" in archetypes:
+        focus.append("no-go zones vs development access, remediation obligations")
+    return "; ".join(focus)

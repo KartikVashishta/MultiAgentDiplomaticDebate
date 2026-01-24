@@ -9,6 +9,7 @@ from madd.core.schemas import (
     TreatyDraft,
 )
 from madd.core.scenario import Scenario
+from madd.core.scenario_router import RouterPlan
 
 
 def _merge_profiles(existing: dict, new: dict) -> dict:
@@ -27,6 +28,8 @@ class DebateState(TypedDict):
     audit: Annotated[list[AuditFinding], operator.add]
     max_rounds: int
     clause_counter: int
+    router_plan: RouterPlan | None
+    treaty_text: str | None
 
 
 def create_initial_state(scenario: Scenario) -> DebateState:
@@ -40,4 +43,6 @@ def create_initial_state(scenario: Scenario) -> DebateState:
         audit=[],
         max_rounds=scenario.max_rounds,
         clause_counter=0,
+        router_plan=None,
+        treaty_text=None,
     )

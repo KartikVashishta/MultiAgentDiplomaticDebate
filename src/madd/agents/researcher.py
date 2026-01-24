@@ -15,6 +15,7 @@ from madd.core.schemas import (
     Citation,
 )
 from madd.tools.web_search import search_country_info
+from madd.core.scenario_router import RouterPlan
 
 
 class ProfileLLMOutput(BaseModel):
@@ -48,32 +49,33 @@ BASE_RESEARCH_TOPICS = {
     "economy": "GDP economy trade industries",
     "leaders": "government president prime minister leaders",
     "alliances": "foreign policy alliances treaties international relations",
-    "history": "military conflicts history wars",
-}
-
-MARITIME_RESEARCH_TOPICS = {
-    "maritime_law": "UNCLOS freedom of navigation EEZ territorial sea transit passage",
-    "regional_process": "ASEAN South China Sea code of conduct joint statement",
-    "incident_safety": "CUES incidents at sea hotline search and rescue maritime safety",
-    "environment": "marine pollution reef protection destructive fishing biodiversity",
+    "history": "major conflicts history wars",
+    "law": "treaties agreements legal framework dispute settlement",
+    "environment": "environment climate monitoring impact assessment",
 }
 
 
-def _select_research_topics(scenario_name: str, scenario_description: str) -> dict[str, str]:
-    text = f"{scenario_name} {scenario_description}".lower()
-    topics = dict(BASE_RESEARCH_TOPICS)
-    if any(token in text for token in ("sea", "maritime", "shipping", "eez", "naval", "navigation")):
-        topics.update(MARITIME_RESEARCH_TOPICS)
-    return topics
+def _fallback_topics() -> dict[str, str]:
+    return dict(BASE_RESEARCH_TOPICS)
 
 
-def generate_profile(country_name: str, scenario_description: str, scenario_name: str | None = None) -> CountryProfile:
+def generate_profile(
+    country_name: str,
+    scenario_description: str,
+    scenario_name: str | None = None,
+    router_plan: RouterPlan | None = None,
+) -> CountryProfile:
     settings = get_settings()
     
     topic_citations: dict[str, list[Citation]] = {}
     research_context = ""
     
-    topics = _select_research_topics(scenario_name or "", scenario_description)
+    if router_plan:
+        topics = dict(router_plan.research_topics)
+        topic_domains = dict(router_plan.topic_domains)
+    else:
+        topics = _fallback_topics()
+        topic_domains = {}
     scenario_context = scenario_name or ""
     
     for topic_key, topic_query in topics.items():
@@ -83,6 +85,7 @@ def generate_profile(country_name: str, scenario_description: str, scenario_name
                 topic_key,
                 query_hint=topic_query,
                 scenario_context=scenario_context,
+                allowed_domains=topic_domains.get(topic_key),
             )
             research_context += f"\n{topic_key.upper()}:\n{text}\n"
             topic_citations[topic_key] = cites
@@ -103,7 +106,8 @@ def generate_profile(country_name: str, scenario_description: str, scenario_name
     system_prompt = """You are an expert diplomatic researcher.
 Generate a country profile based on the research data provided.
 Only include information supported by the research context.
-If data is not available, leave fields empty/null."""
+Do not invent facts; if data is missing, leave fields empty/null.
+Prioritize information relevant to the scenario agenda and topics."""
 
     scenario_label = scenario_name or "Scenario"
     user_prompt = f"""Country: {country_name}
@@ -127,6 +131,12 @@ Generate the profile fields."""
     
     now = datetime.now(timezone.utc)
     
+    base_keys = {"economy", "leaders", "alliances", "history"}
+    scenario_citations = []
+    for topic_key, cites in topic_citations.items():
+        if topic_key not in base_keys:
+            scenario_citations.extend(cites)
+
     facts = CountryFacts(
         name=output.name,
         region=output.region,
@@ -146,12 +156,7 @@ Generate the profile fields."""
         treaties=output.treaties,
         international_memberships=output.international_memberships,
         citations=topic_citations.get("alliances", []),
-        scenario_citations=(
-            topic_citations.get("maritime_law", [])
-            + topic_citations.get("regional_process", [])
-            + topic_citations.get("incident_safety", [])
-            + topic_citations.get("environment", [])
-        ),
+        scenario_citations=scenario_citations,
         leaders_citations=topic_citations.get("leaders", []),
         history_citations=topic_citations.get("history", []),
     )
