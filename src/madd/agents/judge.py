@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from madd.core.config import get_settings
 from madd.core.schemas import RoundScorecard, CountryScore
@@ -13,9 +13,15 @@ from madd.core.state import DebateState
 logger = logging.getLogger(__name__)
 
 
+class ScoreOut(BaseModel):
+    country: str
+    score: float = Field(default=5, ge=0, le=10)
+    reasoning: str = ""
+
+
 class JudgeLLMOutput(BaseModel):
-    scores: list[dict] = []
-    rankings: list[str] = []
+    scores: list[ScoreOut] = Field(default_factory=list)
+    rankings: list[str] = Field(default_factory=list)
     summary: str = ""
 
 
@@ -28,7 +34,7 @@ def evaluate_round(state: DebateState) -> RoundScorecard:
         max_retries=settings.max_retries,
     )
     
-    structured_llm = llm.with_structured_output(JudgeLLMOutput)
+    structured_llm = llm.with_structured_output(JudgeLLMOutput, method="function_calling")
     current_round = state["round"]
     messages = [m for m in state.get("messages", []) if m.round_number == current_round]
     
@@ -67,14 +73,11 @@ Evaluate and score."""
         logger.warning(f"Judge error: {e}")
         return RoundScorecard(round_number=current_round)
     
-    scores = []
-    for s in output.scores:
-        if isinstance(s, dict) and "country" in s:
-            scores.append(CountryScore(
-                country=s["country"],
-                score=float(s.get("score", 5)),
-                reasoning=s.get("reasoning", ""),
-            ))
+    scores = [
+        CountryScore(country=s.country, score=float(s.score), reasoning=s.reasoning)
+        for s in (output.scores or [])
+        if s and s.country
+    ]
     
     treaty = state.get("treaty")
     clauses_this_round = [c for c in (treaty.clauses if treaty else []) if c.proposed_round == current_round]

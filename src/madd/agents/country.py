@@ -3,21 +3,26 @@ from datetime import datetime, timezone
 
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from madd.core.config import get_settings
 from madd.core.schemas import DebateMessage, CountryProfile, TreatyDraft, ProposedClause
 from madd.core.state import DebateState
 
 
+class ProposedClauseOut(BaseModel):
+    text: str
+    rationale: str = ""
+
+
 class TurnLLMOutput(BaseModel):
     public_statement: str
     private_intent: Optional[str] = None
-    proposed_clauses: list[dict] = []
-    clause_votes: dict[str, str] = {}
-    acceptance_conditions: list[str] = []
-    red_lines: list[str] = []
-    citation_ids_to_reference: list[str] = []
+    proposed_clauses: list[ProposedClauseOut] = Field(default_factory=list)
+    clause_votes: dict[str, str] = Field(default_factory=dict)
+    acceptance_conditions: list[str] = Field(default_factory=list)
+    red_lines: list[str] = Field(default_factory=list)
+    citation_ids_to_reference: list[str] = Field(default_factory=list)
 
 
 def generate_turn(state: DebateState, country_name: str) -> DebateMessage:
@@ -35,7 +40,7 @@ def generate_turn(state: DebateState, country_name: str) -> DebateMessage:
     current_round = state["round"]
     scenario = state["scenario"]
     
-    structured_llm = llm.with_structured_output(TurnLLMOutput)
+    structured_llm = llm.with_structured_output(TurnLLMOutput, method="function_calling")
     
     pending_clauses = [
         f"- {c.id}: {c.text} (by {c.proposed_by})"
@@ -98,13 +103,11 @@ Generate your turn. You MUST include at least one citation_ids_to_reference from
             public_statement=f"{country_name} reserves its position.",
         )
     
-    proposed = []
-    for p in output.proposed_clauses:
-        if isinstance(p, dict) and "text" in p:
-            proposed.append(ProposedClause(
-                text=p["text"],
-                rationale=p.get("rationale", ""),
-            ))
+    proposed = [
+        ProposedClause(text=p.text, rationale=p.rationale)
+        for p in (output.proposed_clauses or [])
+        if p and p.text
+    ]
     
     references = [cid for cid in output.citation_ids_to_reference if cid in valid_ids]
     if not references and all_citations:

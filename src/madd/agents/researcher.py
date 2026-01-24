@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import cast, Optional
+import traceback
 
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
@@ -59,11 +60,13 @@ def generate_profile(country_name: str, scenario_description: str) -> CountryPro
     
     for topic_key, topic_query in RESEARCH_TOPICS.items():
         try:
-            text, cites = search_country_info(country_name, topic_query)
+            text, cites = search_country_info(country_name, topic_key, query_hint=topic_query)
             research_context += f"\n{topic_key.upper()}:\n{text}\n"
             topic_citations[topic_key] = cites
         except Exception as e:
             print(f"  Research failed for {topic_key}: {e}")
+            traceback.print_exc()
+            topic_citations[topic_key] = []
             topic_citations[topic_key] = []
     
     llm = ChatOpenAI(

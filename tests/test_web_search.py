@@ -1,10 +1,11 @@
 import pytest
 import hashlib
+from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 
 from madd.core.schemas import Citation
 from madd.tools.web_search import (
-    web_search, _cache_key, _citation_id_from_url,
+    web_search, _cache_key, _citation_id_from_url, _parse_sources_from_response,
     _synthesize_text_from_citations, DEFAULT_ECONOMIC_DOMAINS,
 )
 
@@ -44,8 +45,8 @@ def test_cache_key_includes_location():
 
 def test_synthesize_text_from_citations():
     citations = [
-        Citation(id="c1", title="Title A", url="https://a.com", snippet="Snippet A"),
-        Citation(id="c2", title="Title B", url="https://b.com", snippet="Snippet B"),
+        Citation(id="c1", title="Title A", url="https://a.com", snippet="Snippet A", topic="test"),
+        Citation(id="c2", title="Title B", url="https://b.com", snippet="Snippet B", topic="test"),
     ]
     text = _synthesize_text_from_citations(citations)
     assert "Title A" in text
@@ -141,7 +142,7 @@ def test_cache_hit_returns_text_and_citations(mock_settings, mock_load_cache):
     mock_settings.return_value.search_cache_enabled = True
     
     cached_citations = [
-        Citation(id="cite_abc", title="Cached Title", url="https://cached.com", snippet="Cached snippet")
+        Citation(id="cite_abc", title="Cached Title", url="https://cached.com", snippet="Cached snippet", topic="test")
     ]
     mock_load_cache.return_value = {
         "text": "Cached research text",
@@ -161,7 +162,7 @@ def test_cache_hit_synthesizes_text_if_empty(mock_settings, mock_load_cache):
     mock_settings.return_value.search_cache_enabled = True
     
     cached_citations = [
-        Citation(id="cite_abc", title="Title", url="https://a.com", snippet="Important snippet")
+        Citation(id="cite_abc", title="Title", url="https://a.com", snippet="Important snippet", topic="test")
     ]
     mock_load_cache.return_value = {
         "text": "",
@@ -172,3 +173,30 @@ def test_cache_hit_synthesizes_text_if_empty(mock_settings, mock_load_cache):
     
     assert "Title" in text
     assert "Important snippet" in text
+
+
+def test_parse_sources_handles_none_sources():
+    mock_action = MagicMock()
+    mock_action.sources = None
+    mock_item = MagicMock()
+    mock_item.type = "web_search_call"
+    mock_item.action = mock_action
+    mock_response = MagicMock()
+    mock_response.output = [mock_item]
+    
+    citations = _parse_sources_from_response(mock_response, "economy", datetime.now(timezone.utc))
+    
+    assert citations == []
+
+
+def test_parse_sources_handles_none_annotations():
+    mock_block = MagicMock()
+    mock_block.annotations = None
+    mock_item = MagicMock()
+    mock_item.content = [mock_block]
+    mock_response = MagicMock()
+    mock_response.output = [mock_item]
+    
+    citations = _parse_sources_from_response(mock_response, "leaders", datetime.now(timezone.utc))
+    
+    assert citations == []

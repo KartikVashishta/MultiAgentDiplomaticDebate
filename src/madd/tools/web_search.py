@@ -47,10 +47,12 @@ def _load_cache(cache_key: str, max_results: int) -> dict | None:
         try:
             with open(cache_path) as f:
                 data = json.load(f)
-            if "citations" in data:
-                citations = [Citation.model_validate(c) for c in data["citations"]]
+                c_raw = data.get("citations") or []
+                if not isinstance(c_raw, list):
+                    c_raw = []
+                citations = [Citation.model_validate(c) for c in c_raw if c]
                 return {
-                    "text": data.get("text", ""),
+                    "text": data.get("text", "") or "",
                     "citations": citations[:max_results],
                 }
         except Exception:
@@ -73,55 +75,78 @@ def _save_cache(cache_key: str, text: str, citations: list[Citation]) -> None:
 
 
 def _parse_sources_from_response(response, topic: str | None, now: datetime) -> list[Citation]:
-    citations = []
-    
-    if not hasattr(response, 'output') or not response.output:
-        return citations
-    
-    for item in response.output:
-        if hasattr(item, 'type') and item.type == 'web_search_call':
-            if hasattr(item, 'action') and hasattr(item.action, 'sources'):
-                for src in item.action.sources:
-                    url = getattr(src, 'url', '')
-                    if url:
-                        citations.append(Citation(
+    citations: list[Citation] = []
+
+    output_items = getattr(response, "output", None) or []
+    for item in output_items:
+        if getattr(item, "type", "") == "web_search_call":
+            action = getattr(item, "action", None)
+            sources = getattr(action, "sources", None) or []
+            for src in sources:
+                if isinstance(src, dict):
+                    url = src.get("url") or ""
+                    title = src.get("title") or "Source"
+                    snippet = src.get("snippet") or ""
+                else:
+                    url = getattr(src, "url", "") or ""
+                    title = getattr(src, "title", "") or "Source"
+                    snippet = getattr(src, "snippet", "") or ""
+                if url:
+                    citations.append(
+                        Citation(
                             id=_citation_id_from_url(url),
-                            title=getattr(src, 'title', 'Source'),
+                            title=title,
                             url=url,
-                            snippet=getattr(src, 'snippet', '')[:500],
+                            snippet=snippet[:500],
                             retrieved_at=now,
                             topic=topic,
-                        ))
-        elif hasattr(item, 'content'):
-            for block in getattr(item, 'content', []):
-                if hasattr(block, 'annotations'):
-                    for ann in block.annotations:
-                        ann_type = getattr(ann, 'type', '')
-                        if ann_type != 'url_citation':
-                            continue
-                        url = getattr(ann, 'url', '')
-                        if url:
-                            citations.append(Citation(
-                                id=_citation_id_from_url(url),
-                                title=getattr(ann, 'title', 'Source'),
-                                url=url,
-                                snippet="",
-                                retrieved_at=now,
-                                topic=topic,
-                            ))
-    
+                        )
+                    )
+            continue
+
+        for block in (getattr(item, "content", None) or []):
+            for ann in (getattr(block, "annotations", None) or []):
+                ann_type = ann.get("type", "") if isinstance(ann, dict) else getattr(ann, "type", "")
+                if ann_type != "url_citation":
+                    continue
+                if isinstance(ann, dict):
+                    url = ann.get("url") or ""
+                    title = ann.get("title") or "Source"
+                else:
+                    url = getattr(ann, "url", "") or ""
+                    title = getattr(ann, "title", "") or "Source"
+                if url:
+                    citations.append(
+                        Citation(
+                            id=_citation_id_from_url(url),
+                            title=title,
+                            url=url,
+                            snippet="",
+                            retrieved_at=now,
+                            topic=topic,
+                        )
+                    )
+
     return citations
 
 
 def _extract_text_from_response(response) -> str:
-    text_content = ""
-    if hasattr(response, 'output') and response.output:
-        for item in response.output:
-            if hasattr(item, 'content'):
-                for block in getattr(item, 'content', []):
-                    if hasattr(block, 'text'):
-                        text_content += block.text + "\n"
-    return text_content.strip()
+    """Extract text from OpenAI response.
+    
+    Uses the canonical SDK accessor response.output_text (avoids iterating
+    output items where content can be None). Falls back to manual extraction
+    for older response shapes.
+    """
+    text = getattr(response, "output_text", None)
+    if isinstance(text, str) and text.strip():
+        return text.strip()
+    chunks: list[str] = []
+    for item in (getattr(response, "output", None) or []):
+        for block in (getattr(item, "content", None) or []):
+            t = getattr(block, "text", None)
+            if isinstance(t, str) and t:
+                chunks.append(t)
+    return "\n".join(chunks).strip()
 
 
 def _synthesize_text_from_citations(citations: list[Citation]) -> str:
@@ -189,21 +214,34 @@ def web_search(
 
 def search_country_info(
     country_name: str,
-    topic: str,
+    topic_key: str,
+    query_hint: str | None = None,
     allowed_domains: list[str] | None = None,
 ) -> tuple[str, list[Citation]]:
-    if topic in ("economy", "GDP economy trade industries"):
+    """Search for country information with domain filtering by topic.
+    
+    Args:
+        country_name: Name of the country to search for.
+        topic_key: Short topic identifier (e.g. "economy", "leaders") for domain selection.
+        query_hint: Optional expanded query terms (defaults to topic_key if not provided).
+        allowed_domains: Optional override for allowed domains.
+    
+    Returns:
+        Tuple of (text_content, citations).
+    """
+    if topic_key == "economy":
         domains = allowed_domains or DEFAULT_ECONOMIC_DOMAINS
-    elif topic in ("leaders", "government president prime minister leaders"):
+    elif topic_key == "leaders":
         domains = allowed_domains or DEFAULT_GOVERNMENT_DOMAINS
     else:
         domains = allowed_domains
-    
-    query = f"{country_name} {topic} latest most recent official data"
+
+    hint = query_hint or topic_key
+    query = f"{country_name} {hint} latest most recent official data"
     return web_search(
         query=query,
         max_results=5,
         allowed_domains=domains,
-        topic=topic,
+        topic=topic_key,
         use_cache=True,
     )
