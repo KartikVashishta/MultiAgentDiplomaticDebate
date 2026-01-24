@@ -31,7 +31,8 @@ def verify_claims(state: DebateState) -> list[AuditFinding]:
     )
     
     current_round = state["round"]
-    messages = [m for m in state.get("messages", []) if m.round_number == current_round]
+    all_messages = state.get("messages", [])
+    messages = [m for m in all_messages if m.round_number == current_round]
     
     if not messages:
         return []
@@ -45,6 +46,16 @@ def verify_claims(state: DebateState) -> list[AuditFinding]:
         
         valid_citation_ids = {c.id for c in profile.all_citations()}
         refs_used = m.references_used
+        
+        if not valid_citation_ids:
+            findings.append(AuditFinding(
+                severity=AuditSeverity.WARNING,
+                category="missing_citations",
+                description=f"{m.country} has no citations in profile; verification is limited",
+                country=m.country,
+                round_number=current_round,
+                evidence=[],
+            ))
         
         if not refs_used:
             findings.append(AuditFinding(
@@ -74,7 +85,7 @@ def verify_claims(state: DebateState) -> list[AuditFinding]:
                     ],
                 ))
     
-    structured_llm = llm.with_structured_output(VerifierLLMOutput)
+    structured_llm = llm.with_structured_output(VerifierLLMOutput, method="function_calling")
     
     system_prompt = """You are a fact-checking verifier.
 Detect:
@@ -95,7 +106,19 @@ Return findings with:
         facts = ""
         if profile:
             facts = f"GDP: {profile.facts.economy.gdp_usd_billions}B, Leaders: {profile.facts.current_leaders}"
-        context += f"\n{m.country} (Facts: {facts}):\n{m.public_statement[:400]}\n"
+        prior_statements = [
+            p for p in all_messages
+            if p.country == m.country and p.round_number < current_round
+        ]
+        prior_text = "\n".join(
+            f"Round {p.round_number}: {p.public_statement[:250]}"
+            for p in prior_statements[-2:]
+        )
+        context += (
+            f"\n{m.country} (Facts: {facts}):\n"
+            f"Prior statements:\n{prior_text or 'None'}\n"
+            f"Current statement:\n{m.public_statement[:400]}\n"
+        )
 
     user_prompt = f"""Round {current_round} statements:
 {context}
@@ -121,5 +144,12 @@ Check for contradictions and inconsistencies only (unsupported claims already ch
             ))
     except Exception as e:
         print(f"    Verifier LLM error: {e}")
+        findings.append(AuditFinding(
+            severity=AuditSeverity.ERROR,
+            category="verifier_failed",
+            description=f"Verifier structured output failed: {e}",
+            round_number=current_round,
+            evidence=[],
+        ))
     
     return findings

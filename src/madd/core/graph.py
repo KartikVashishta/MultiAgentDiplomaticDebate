@@ -3,7 +3,7 @@ import logging
 from langgraph.graph import StateGraph, END
 
 from madd.core.state import DebateState
-from madd.core.schemas import Clause, ClauseStatus, TreatyDraft
+from madd.core.schemas import AuditFinding, AuditSeverity, Clause, ClauseStatus, TreatyDraft
 from madd.stores.profile_store import ensure_profile
 from madd.agents.country import generate_turn
 from madd.agents.judge import evaluate_round
@@ -179,7 +179,13 @@ def _verify(state: DebateState) -> dict:
         return {"audit": findings}
     except Exception as e:
         logger.warning(f"Verification error: {e}")
-        return {"audit": []}
+        return {"audit": [AuditFinding(
+            severity=AuditSeverity.ERROR,
+            category="verifier_failed",
+            description=f"Verifier crashed: {e}",
+            round_number=state.get("round", 0),
+            evidence=[],
+        )]}
 
 
 def _judge(state: DebateState) -> dict:

@@ -1,4 +1,4 @@
-from typing import cast, Optional
+from typing import cast, Optional, Any
 from datetime import datetime, timezone
 
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -15,11 +15,16 @@ class ProposedClauseOut(BaseModel):
     rationale: str = ""
 
 
+class ClauseVoteOut(BaseModel):
+    clause_id: str | None = None
+    vote: str | None = None
+
+
 class TurnLLMOutput(BaseModel):
     public_statement: str
     private_intent: Optional[str] = None
     proposed_clauses: list[ProposedClauseOut] = Field(default_factory=list)
-    clause_votes: dict[str, str] = Field(default_factory=dict)
+    clause_votes: dict[str, str] | list[Any] = Field(default_factory=dict)
     acceptance_conditions: list[str] = Field(default_factory=list)
     red_lines: list[str] = Field(default_factory=list)
     citation_ids_to_reference: list[str] = Field(default_factory=list)
@@ -48,17 +53,30 @@ def generate_turn(state: DebateState, country_name: str) -> DebateMessage:
         if c.status.value == "proposed"
     ]
     
-    recent_messages = [m for m in messages if m.round_number >= max(1, current_round - 1)]
-    history = "\n".join(
-        f"{m.country}: {m.public_statement[:300]}..."
-        for m in recent_messages[-6:]
-    )
+    history_entries = [
+        f"Round {m.round_number} - {m.country}: {m.public_statement[:300]}..."
+        for m in messages
+    ]
+    history = "\n".join(history_entries)
     
     all_citations = profile.all_citations()
-    valid_ids = {c.id for c in all_citations}
     citation_refs = "\n".join(
         f"- {c.id}: {c.title} ({c.snippet[:80]}...)"
-        for c in all_citations[:10]
+        for c in all_citations[:12]
+    )
+    
+    facts_summary = [
+        f"Region: {profile.facts.region or 'Unknown'}",
+        f"Government: {profile.facts.government_type or 'Unknown'}",
+        f"Leaders: {', '.join(profile.facts.current_leaders[:3]) or 'Unknown'}",
+        f"GDP (USD billions): {profile.facts.economy.gdp_usd_billions or 'Unknown'}",
+        f"Major industries: {', '.join(profile.facts.economy.major_industries[:5]) or 'Unknown'}",
+    ]
+    facts_summary_text = "\n".join(facts_summary)
+    
+    treaty_summary = "\n".join(
+        f"- {c.id} [{c.status.value}] {c.text} (by {c.proposed_by})"
+        for c in treaty.clauses
     )
     
     system_prompt = f"""You are the Diplomatic Representative of {country_name}.
@@ -68,8 +86,10 @@ Scenario: {scenario.name}
 Your key interests: {', '.join(profile.strategy.core_policy_goals[:3])}
 Your allies: {', '.join(profile.strategy.key_allies[:3])}
 Your red lines: {', '.join(profile.strategy.red_lines[:3])}
+Facts:
+{facts_summary_text}
 
-Available citations you MUST reference (use exact IDs):
+Available citations (use exact IDs only if they support your statement):
 {citation_refs}
 
 Respond with:
@@ -77,7 +97,7 @@ Respond with:
 - private_intent: Your hidden strategy
 - proposed_clauses: List of clauses (each with "text" and "rationale")
 - clause_votes: Vote on pending clauses by ID ("support", "oppose", or "amend")
-- citation_ids_to_reference: List of citation IDs (e.g. "cite_abc123") that support your statement"""
+- citation_ids_to_reference: List of citation IDs (e.g. "cite_abc123") that directly support your statement (leave empty if none are relevant)"""
 
     pending_str = "\n".join(pending_clauses) if pending_clauses else "None"
     
@@ -86,10 +106,13 @@ Respond with:
 Pending Clauses:
 {pending_str}
 
+Treaty So Far:
+{treaty_summary if treaty_summary else "None"}
+
 Recent History:
 {history if history else "No prior statements."}
 
-Generate your turn. You MUST include at least one citation_ids_to_reference from the available citations."""
+Generate your turn. For every pending clause ID listed, include exactly one vote."""
 
     try:
         result = structured_llm.invoke([
@@ -109,19 +132,41 @@ Generate your turn. You MUST include at least one citation_ids_to_reference from
         if p and p.text
     ]
     
-    references = [cid for cid in output.citation_ids_to_reference if cid in valid_ids]
-    if not references and all_citations:
-        references = [all_citations[0].id]
+    references = [cid for cid in output.citation_ids_to_reference if isinstance(cid, str)]
+    
+    clause_votes = _normalize_clause_votes(output.clause_votes)
     
     return DebateMessage(
         round_number=current_round,
         country=country_name,
         public_statement=output.public_statement,
         proposed_clauses=proposed,
-        clause_votes=output.clause_votes,
+        clause_votes=clause_votes,
         private_intent=output.private_intent,
         acceptance_conditions=output.acceptance_conditions,
         red_lines=output.red_lines,
         references_used=references,
         timestamp=datetime.now(timezone.utc),
     )
+
+
+def _normalize_clause_votes(raw_votes: dict[str, str] | list[Any]) -> dict[str, str]:
+    if isinstance(raw_votes, dict):
+        return {str(k): str(v) for k, v in raw_votes.items() if k and v}
+    if not isinstance(raw_votes, list):
+        return {}
+    
+    votes: dict[str, str] = {}
+    for item in raw_votes or []:
+        if isinstance(item, ClauseVoteOut):
+            clause_id = item.clause_id
+            vote = item.vote
+        elif isinstance(item, dict):
+            clause_id = item.get("clause_id") or item.get("clause") or item.get("id") or item.get("clauseId")
+            vote = item.get("vote")
+        else:
+            clause_id = None
+            vote = None
+        if clause_id and vote:
+            votes[str(clause_id)] = str(vote)
+    return votes

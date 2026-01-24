@@ -76,7 +76,7 @@ def generate_profile(country_name: str, scenario_description: str) -> CountryPro
         max_retries=settings.max_retries,
     )
     
-    structured_llm = llm.with_structured_output(ProfileLLMOutput)
+    structured_llm = llm.with_structured_output(ProfileLLMOutput, method="function_calling")
     
     system_prompt = """You are an expert diplomatic researcher.
 Generate a country profile based on the research data provided.
