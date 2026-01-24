@@ -1,16 +1,15 @@
-from typing import cast
-import uuid
+import logging
 
 from langgraph.graph import StateGraph, END
 
 from madd.core.state import DebateState
-from madd.core.schemas import (
-    Clause, ClauseStatus, TreatyDraft, DebateMessage, ProposedClause
-)
+from madd.core.schemas import Clause, ClauseStatus, TreatyDraft
 from madd.stores.profile_store import ensure_profile
 from madd.agents.country import generate_turn
 from madd.agents.judge import evaluate_round
 from madd.agents.verifier import verify_claims
+
+logger = logging.getLogger(__name__)
 
 
 def build_graph() -> StateGraph:
@@ -48,10 +47,10 @@ def _ensure_profiles(state: DebateState) -> dict:
     scenario = state["scenario"]
     profiles = {}
     
-    print(f"[ensure_profiles] Loading/generating profiles for {len(scenario.countries)} countries")
+    logger.info(f"Loading/generating profiles for {len(scenario.countries)} countries")
     
     for country in scenario.countries:
-        print(f"  - {country}...")
+        logger.info(f"  - {country}...")
         profiles[country] = ensure_profile(country, scenario.description)
     
     return {"profiles": profiles}
@@ -59,33 +58,34 @@ def _ensure_profiles(state: DebateState) -> dict:
 
 def _opening_statements(state: DebateState) -> dict:
     scenario = state["scenario"]
-    print(f"[opening_statements] Round 1")
+    logger.info("Round 1: Opening statements")
     
     new_messages = []
     temp_state = dict(state)
     temp_state["round"] = 1
+    temp_state["treaty"] = TreatyDraft(title=f"Treaty on {scenario.name}")
     
     for country in scenario.countries:
-        print(f"  - {country} speaking...")
+        logger.info(f"  - {country} speaking...")
+        temp_state["messages"] = list(state.get("messages", [])) + new_messages
         msg = generate_turn(temp_state, country)
         msg.round_number = 1
         new_messages.append(msg)
-        temp_state["messages"] = list(state.get("messages", [])) + new_messages
     
-    return {"messages": new_messages, "round": 1}
+    return {"messages": new_messages, "round": 1, "treaty": temp_state["treaty"]}
 
 
 def _negotiate_round(state: DebateState) -> dict:
     scenario = state["scenario"]
     current_round = state["round"] + 1
-    print(f"[negotiate_round] Round {current_round}")
+    logger.info(f"Round {current_round}: Negotiation")
     
     new_messages = []
     temp_state = dict(state)
     temp_state["round"] = current_round
     
     for country in scenario.countries:
-        print(f"  - {country} speaking...")
+        logger.info(f"  - {country} speaking...")
         temp_state["messages"] = list(state.get("messages", [])) + new_messages
         msg = generate_turn(temp_state, country)
         msg.round_number = current_round
@@ -95,21 +95,19 @@ def _negotiate_round(state: DebateState) -> dict:
 
 
 def _compile_treaty(state: DebateState) -> dict:
-    print(f"[compile_treaty] Processing clauses")
+    logger.info("Compiling treaty clauses")
     
     current_round = state["round"]
     messages = state.get("messages", [])
     treaty = state.get("treaty") or TreatyDraft()
     countries = state["scenario"].countries
-    existing_clause_ids = {c.id for c in treaty.clauses}
     
     round_messages = [m for m in messages if m.round_number == current_round]
     
-    new_clauses = []
     for msg in round_messages:
         for proposed in msg.proposed_clauses:
-            clause_id = f"C{len(treaty.clauses) + len(new_clauses) + 1}"
-            new_clauses.append(Clause(
+            clause_id = f"C{len(treaty.clauses) + 1}"
+            treaty.clauses.append(Clause(
                 id=clause_id,
                 text=proposed.text,
                 proposed_by=msg.country,
@@ -119,26 +117,36 @@ def _compile_treaty(state: DebateState) -> dict:
                 objectors=[],
             ))
     
-    all_clauses = list(treaty.clauses) + new_clauses
+    votable_clauses = [
+        c for c in treaty.clauses
+        if c.status == ClauseStatus.PROPOSED and c.proposed_round < current_round
+    ]
     
-    for clause in all_clauses:
-        if clause.status != ClauseStatus.PROPOSED:
-            continue
-        
+    for clause in votable_clauses:
         for msg in round_messages:
             if msg.country == clause.proposed_by:
                 continue
             
             vote = msg.clause_votes.get(clause.id, "")
-            if vote == "support" and msg.country not in clause.supporters:
-                clause.supporters.append(msg.country)
-            elif vote == "oppose" and msg.country not in clause.objectors:
-                clause.objectors.append(msg.country)
+            
+            if vote == "support":
+                if msg.country not in clause.supporters:
+                    clause.supporters.append(msg.country)
+                if msg.country in clause.objectors:
+                    clause.objectors.remove(msg.country)
+            elif vote == "oppose":
+                if msg.country not in clause.objectors:
+                    clause.objectors.append(msg.country)
+                if msg.country in clause.supporters:
+                    clause.supporters.remove(msg.country)
+            elif vote == "amend":
+                if msg.country not in clause.objectors:
+                    clause.objectors.append(msg.country)
+                amendment_text = f"[Round {current_round}] {msg.country} proposed amendment"
+                if amendment_text not in clause.amendments:
+                    clause.amendments.append(amendment_text)
     
-    for clause in all_clauses:
-        if clause.status != ClauseStatus.PROPOSED:
-            continue
-        
+    for clause in votable_clauses:
         support_count = len(clause.supporters)
         oppose_count = len(clause.objectors)
         total = len(countries)
@@ -146,42 +154,51 @@ def _compile_treaty(state: DebateState) -> dict:
         if support_count > total / 2:
             clause.status = ClauseStatus.ACCEPTED
             clause.resolved_round = current_round
+            logger.info(f"  Clause {clause.id} ACCEPTED ({support_count}/{total})")
         elif oppose_count > total / 2:
-            clause.status = ClauseStatus.REJECTED
+            if clause.amendments:
+                clause.status = ClauseStatus.AMENDED
+            else:
+                clause.status = ClauseStatus.REJECTED
             clause.resolved_round = current_round
+            logger.info(f"  Clause {clause.id} {clause.status.value.upper()} ({oppose_count}/{total})")
     
     updated_treaty = TreatyDraft(
         title=treaty.title or f"Treaty on {state['scenario'].name}",
         preamble=treaty.preamble,
-        clauses=all_clauses,
+        clauses=treaty.clauses,
     )
     
     return {"treaty": updated_treaty}
 
 
 def _verify(state: DebateState) -> dict:
-    print(f"[verify] Checking claims")
+    logger.info("Verifying claims")
     try:
         findings = verify_claims(state)
         return {"audit": findings}
     except Exception as e:
-        print(f"  Verification error: {e}")
+        logger.warning(f"Verification error: {e}")
         return {"audit": []}
 
 
 def _judge(state: DebateState) -> dict:
-    print(f"[judge] Evaluating round {state['round']}")
+    current_round = state["round"]
+    logger.info(f"Judging round {current_round}")
     try:
         scorecard = evaluate_round(state)
         return {"scorecards": [scorecard]}
     except Exception as e:
-        print(f"  Judge error: {e}")
+        logger.warning(f"Judge error: {e}")
         from madd.core.schemas import RoundScorecard
-        return {"scorecards": [RoundScorecard(round_number=state["round"])]}
+        return {"scorecards": [RoundScorecard(round_number=current_round)]}
 
 
 def _finalize_report(state: DebateState) -> dict:
-    print(f"[finalize_report] Debate complete after {state['round']} rounds")
+    logger.info(f"Debate complete after {state['round']} rounds")
+    treaty = state.get("treaty")
+    if treaty:
+        logger.info(f"  Accepted: {len(treaty.accepted_clauses)}, Pending: {len(treaty.pending_clauses)}")
     return {}
 
 

@@ -1,13 +1,32 @@
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 from openai import OpenAI
 
-from madd.core.config import get_settings, current_year
+from madd.core.config import get_settings
 from madd.core.schemas import Citation
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_ECONOMIC_DOMAINS = [
+    "worldbank.org",
+    "imf.org",
+    "un.org",
+    "oecd.org",
+    "cia.gov",
+    "data.gov",
+    "statista.com",
+]
+
+DEFAULT_GOVERNMENT_DOMAINS = [
+    "gov.uk",
+    "state.gov",
+    "europa.eu",
+    "foreignaffairs.gov",
+]
 
 
 def _citation_id_from_url(url: str) -> str:
@@ -19,7 +38,7 @@ def _cache_key(query: str, allowed_domains: list[str] | None, user_location: str
     return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
 
 
-def _load_cache(cache_key: str, max_results: int) -> list[Citation] | None:
+def _load_cache(cache_key: str, max_results: int) -> dict | None:
     settings = get_settings()
     if not settings.search_cache_enabled:
         return None
@@ -28,14 +47,18 @@ def _load_cache(cache_key: str, max_results: int) -> list[Citation] | None:
         try:
             with open(cache_path) as f:
                 data = json.load(f)
-            citations = [Citation.model_validate(c) for c in data]
-            return citations[:max_results]
+            if "citations" in data:
+                citations = [Citation.model_validate(c) for c in data["citations"]]
+                return {
+                    "text": data.get("text", ""),
+                    "citations": citations[:max_results],
+                }
         except Exception:
             return None
     return None
 
 
-def _save_cache(cache_key: str, citations: list[Citation]) -> None:
+def _save_cache(cache_key: str, text: str, citations: list[Citation]) -> None:
     settings = get_settings()
     if not settings.search_cache_enabled:
         return
@@ -43,7 +66,10 @@ def _save_cache(cache_key: str, citations: list[Citation]) -> None:
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_path = cache_dir / f"{cache_key}.json"
     with open(cache_path, "w") as f:
-        json.dump([c.model_dump(mode="json") for c in citations], f)
+        json.dump({
+            "text": text,
+            "citations": [c.model_dump(mode="json") for c in citations],
+        }, f)
 
 
 def _parse_sources_from_response(response, topic: str | None, now: datetime) -> list[Citation]:
@@ -70,13 +96,16 @@ def _parse_sources_from_response(response, topic: str | None, now: datetime) -> 
             for block in getattr(item, 'content', []):
                 if hasattr(block, 'annotations'):
                     for ann in block.annotations:
+                        ann_type = getattr(ann, 'type', '')
+                        if ann_type != 'url_citation':
+                            continue
                         url = getattr(ann, 'url', '')
                         if url:
                             citations.append(Citation(
                                 id=_citation_id_from_url(url),
                                 title=getattr(ann, 'title', 'Source'),
                                 url=url,
-                                snippet=getattr(ann, 'text', '')[:500],
+                                snippet="",
                                 retrieved_at=now,
                                 topic=topic,
                             ))
@@ -95,6 +124,12 @@ def _extract_text_from_response(response) -> str:
     return text_content.strip()
 
 
+def _synthesize_text_from_citations(citations: list[Citation]) -> str:
+    if not citations:
+        return ""
+    return "\n".join(f"- {c.title}: {c.snippet}" for c in citations if c.snippet)
+
+
 def web_search(
     query: str,
     max_results: int = 5,
@@ -108,7 +143,12 @@ def web_search(
     if use_cache:
         cached = _load_cache(cache_key, max_results)
         if cached:
-            return "", cached
+            text = cached["text"]
+            citations = cached["citations"]
+            if not text and citations:
+                text = _synthesize_text_from_citations(citations)
+            logger.debug(f"Cache hit for query: {query[:50]}...")
+            return text, citations
     
     settings = get_settings()
     client = OpenAI(api_key=settings.openai_api_key)
@@ -127,7 +167,7 @@ def web_search(
             include=["web_search_call.action.sources"],
         )
     except Exception as e:
-        print(f"  Web search failed: {e}")
+        logger.warning(f"Web search failed: {e}")
         return "", []
     
     now = datetime.now(timezone.utc)
@@ -142,7 +182,7 @@ def web_search(
             unique.append(c)
     
     if use_cache and unique:
-        _save_cache(cache_key, unique)
+        _save_cache(cache_key, text_content, unique)
     
     return text_content, unique[:max_results]
 
@@ -152,12 +192,18 @@ def search_country_info(
     topic: str,
     allowed_domains: list[str] | None = None,
 ) -> tuple[str, list[Citation]]:
-    year = current_year()
-    query = f"{country_name} {topic} {year} official data statistics"
+    if topic in ("economy", "GDP economy trade industries"):
+        domains = allowed_domains or DEFAULT_ECONOMIC_DOMAINS
+    elif topic in ("leaders", "government president prime minister leaders"):
+        domains = allowed_domains or DEFAULT_GOVERNMENT_DOMAINS
+    else:
+        domains = allowed_domains
+    
+    query = f"{country_name} {topic} latest most recent official data"
     return web_search(
         query=query,
         max_results=5,
-        allowed_domains=allowed_domains,
+        allowed_domains=domains,
         topic=topic,
         use_cache=True,
     )

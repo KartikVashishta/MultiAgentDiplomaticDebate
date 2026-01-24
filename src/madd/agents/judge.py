@@ -1,3 +1,4 @@
+import logging
 from typing import cast
 from datetime import datetime, timezone
 
@@ -8,6 +9,8 @@ from pydantic import BaseModel
 from madd.core.config import get_settings
 from madd.core.schemas import RoundScorecard, CountryScore
 from madd.core.state import DebateState
+
+logger = logging.getLogger(__name__)
 
 
 class JudgeLLMOutput(BaseModel):
@@ -61,7 +64,7 @@ Evaluate and score."""
         ])
         output = cast(JudgeLLMOutput, result)
     except Exception as e:
-        print(f"    Judge error: {e}")
+        logger.warning(f"Judge error: {e}")
         return RoundScorecard(round_number=current_round)
     
     scores = []
@@ -74,13 +77,15 @@ Evaluate and score."""
             ))
     
     treaty = state.get("treaty")
+    clauses_this_round = [c for c in (treaty.clauses if treaty else []) if c.proposed_round == current_round]
+    resolved_this_round = [c for c in (treaty.clauses if treaty else []) if c.resolved_round == current_round]
     
     return RoundScorecard(
         round_number=current_round,
         scores=scores,
         rankings=output.rankings,
         summary=output.summary,
-        clauses_proposed=len(treaty.clauses) if treaty else 0,
-        clauses_accepted=len(treaty.accepted_clauses) if treaty else 0,
-        clauses_rejected=len([c for c in (treaty.clauses if treaty else []) if c.status.value == "rejected"]),
+        clauses_proposed=len(clauses_this_round),
+        clauses_accepted=len([c for c in resolved_this_round if c.status.value == "accepted"]),
+        clauses_rejected=len([c for c in resolved_this_round if c.status.value in ("rejected", "amended")]),
     )

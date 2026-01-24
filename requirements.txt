@@ -1,6 +1,0 @@
-langchain-openai
-langchain-community
-langchain-core
-colorama
-agentscope
-openai

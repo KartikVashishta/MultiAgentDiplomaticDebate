@@ -3,7 +3,10 @@ import hashlib
 from unittest.mock import patch, MagicMock
 
 from madd.core.schemas import Citation
-from madd.tools.web_search import web_search, _cache_key, _citation_id_from_url
+from madd.tools.web_search import (
+    web_search, _cache_key, _citation_id_from_url,
+    _synthesize_text_from_citations, DEFAULT_ECONOMIC_DOMAINS,
+)
 
 
 def test_citation_id_deterministic():
@@ -37,6 +40,27 @@ def test_cache_key_includes_location():
     key1 = _cache_key("test", None, "US")
     key2 = _cache_key("test", None, "UK")
     assert key1 != key2
+
+
+def test_synthesize_text_from_citations():
+    citations = [
+        Citation(id="c1", title="Title A", url="https://a.com", snippet="Snippet A"),
+        Citation(id="c2", title="Title B", url="https://b.com", snippet="Snippet B"),
+    ]
+    text = _synthesize_text_from_citations(citations)
+    assert "Title A" in text
+    assert "Snippet A" in text
+    assert "Title B" in text
+
+
+def test_synthesize_text_empty():
+    text = _synthesize_text_from_citations([])
+    assert text == ""
+
+
+def test_default_economic_domains():
+    assert "worldbank.org" in DEFAULT_ECONOMIC_DOMAINS
+    assert "imf.org" in DEFAULT_ECONOMIC_DOMAINS
 
 
 @patch("madd.tools.web_search.OpenAI")
@@ -109,3 +133,42 @@ def test_web_search_max_results_slicing(mock_settings, mock_openai):
     _, citations = web_search("test", max_results=3, use_cache=False)
     
     assert len(citations) == 3
+
+
+@patch("madd.tools.web_search._load_cache")
+@patch("madd.core.config.get_settings")
+def test_cache_hit_returns_text_and_citations(mock_settings, mock_load_cache):
+    mock_settings.return_value.search_cache_enabled = True
+    
+    cached_citations = [
+        Citation(id="cite_abc", title="Cached Title", url="https://cached.com", snippet="Cached snippet")
+    ]
+    mock_load_cache.return_value = {
+        "text": "Cached research text",
+        "citations": cached_citations,
+    }
+    
+    text, citations = web_search("test", use_cache=True)
+    
+    assert text == "Cached research text"
+    assert len(citations) == 1
+    assert citations[0].title == "Cached Title"
+
+
+@patch("madd.tools.web_search._load_cache")
+@patch("madd.core.config.get_settings")
+def test_cache_hit_synthesizes_text_if_empty(mock_settings, mock_load_cache):
+    mock_settings.return_value.search_cache_enabled = True
+    
+    cached_citations = [
+        Citation(id="cite_abc", title="Title", url="https://a.com", snippet="Important snippet")
+    ]
+    mock_load_cache.return_value = {
+        "text": "",
+        "citations": cached_citations,
+    }
+    
+    text, citations = web_search("test", use_cache=True)
+    
+    assert "Title" in text
+    assert "Important snippet" in text
