@@ -1,6 +1,6 @@
 # Diplomatic Debate Simulation
 
-A multi-agent, LLM-driven simulation for orchestrating diplomatic debates among different countries. Each `CountryAgent` responds with official statements, while a `JudgeAgent` evaluates each round and delivers a final verdict. The system is orchestrated end-to-end by a `DebateOrchestrator`, using **AgentScope** to manage messaging among agents.
+A multi-agent, LLM-driven simulation for orchestrating diplomatic debates among different countries. Each `CountryAgent` responds with official statements, while a `JudgeAgent` evaluates each round and delivers a final verdict. The system is orchestrated end-to-end by a `DebateOrchestrator` that manages messaging and coordination among agents.
 
 ---
 
@@ -65,8 +65,8 @@ A **JudgeAgent** observes these statements every round, compiles them, scores ea
 
    - A textual `debate_log.txt` is produced, capturing all messages in a time-stamped format.
 
-6. **AgentScope Integration**
-   - We leverage `agentscope.msghub(...)` to broadcast messages among participants, simplifying multi-agent communication.
+6. **Multi-Agent Coordination**
+   - The orchestrator manages message broadcasting among participants, simplifying multi-agent communication.
 
 ---
 
@@ -163,7 +163,7 @@ python run.py
 
 By default, `run.py`:
 
-- Initializes `agentscope` with a chosen model config.
+- Initializes the model configuration.
 - Defines a set of countries, e.g. `["United States", "China", "France"]`.
 - Sets a problem statement: `"Disputed trade routes in international waters..."`.
 - Runs `DebateOrchestrator(...)` for 3 rounds.
@@ -283,7 +283,7 @@ Ultimately, everything boiled down to making a simulation that feels robust, tra
 
 1. **The judge raises “Expected X but got 0”**
 
-   - This usually means the judge didn’t receive the countries’ messages. Ensure you’re using `with msghub(self.all_agents)` and that each agent’s name matches exactly the strings in `judge_agent._country_list`.
+   - This usually means the judge didn’t receive the countries’ messages. Ensure that each agent’s name matches exactly the strings in `judge_agent._country_list`.
 
 2. **JSON Parsing Errors (“invalid control character”)**
 

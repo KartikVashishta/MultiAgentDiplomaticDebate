@@ -175,40 +175,7 @@ class ProfileValidator:
         overwrite: bool = False,
         save_path: Optional[str] = None
     ) -> Union[Tuple[BaseModel, List[Dict[str, str]]], str]:
-        """Validate and optionally update a Pydantic model using LLM.
 
-        Sends the model data to the LLM for validation, processes any suggested
-        changes, and can optionally save the updated model.
-
-        Args:
-            model (BaseModel): The Pydantic model to validate
-            prompt_template (Any): Template for the validation prompt
-            context (Optional[str], optional): Additional context for validation. 
-                Defaults to None
-            is_debug (bool, optional): Whether to return detailed change info. 
-                Defaults to False
-            overwrite (bool, optional): Whether to save changes to file. 
-                Defaults to False
-            save_path (Optional[str], optional): Path to save updated model. 
-                Defaults to None
-
-        Returns:
-            Union[Tuple[BaseModel, List[Dict[str, str]]], str]: Either:
-                - Tuple of (updated model, list of changes) if is_debug=True
-                - Raw validation response string if is_debug=False
-
-        Examples:
-            >>> # Basic validation
-            >>> result = validator.validate(profile, PROMPT)
-            >>> print(result)  # Prints validation response
-            
-            >>> # Debug mode with changes
-            >>> profile, changes = validator.validate(
-            ...     profile, PROMPT, is_debug=True, overwrite=True,
-            ...     save_path="profile.json"
-            ... )
-            >>> print(f"Applied {len(changes)} changes")
-        """
         prompt_vars = {
             "profile_data": model.model_dump_json(indent=2)
         }

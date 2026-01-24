@@ -3,10 +3,18 @@ venv/
 .env
 .venv/
 __pycache__/
+*.pyc
 .vscode/
 .DS_Store
 
-# File structure
-file_structure.txt
-file_structure.py
+# Dev artifacts
+file_structure*
 
+# Runtime output
+debate_log*.txt
+
+data/country_profiles/
+.pytest_cache/
+dist/
+build/
+*.egg-info/

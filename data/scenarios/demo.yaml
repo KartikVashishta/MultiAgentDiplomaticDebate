@@ -1,0 +1,26 @@
+name: "South China Sea Trade Routes"
+description: |
+  Multiple nations contest access to critical maritime trade routes in the South China Sea.
+  This scenario involves negotiating a treaty that balances security concerns, economic 
+  interests, and sovereignty claims. Countries must find common ground on freedom of 
+  navigation, exclusive economic zones, and potential joint enforcement mechanisms.
+
+countries:
+  - United States
+  - China
+  - France
+
+max_rounds: 3
+
+agenda:
+  - topic: "Freedom of navigation in international waters"
+    description: "Establishing principles for unimpeded passage through disputed waters"
+    priority: 1
+    
+  - topic: "Exclusive economic zone boundaries"
+    description: "Defining and respecting EEZ claims and overlaps"
+    priority: 2
+    
+  - topic: "Joint patrol and enforcement agreements"
+    description: "Creating mechanisms for shared security responsibilities"
+    priority: 3
