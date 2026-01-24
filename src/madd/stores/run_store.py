@@ -76,7 +76,11 @@ def save_transcript(state: DebateState, run_dir: Path) -> Path:
     
     for msg in state.get("messages", []):
         lines.append(f"\n## Round {msg.round_number} - {msg.country}\n")
-        lines.append(f"\n{msg.public_statement}\n")
+        statement = msg.public_statement
+        if msg.is_truncated:
+            note = msg.truncation_note or "Statement truncated"
+            statement = f"{statement}\n\n[Truncation: {note}]"
+        lines.append(f"\n{statement}\n")
         
         refs = []
         for cid in msg.references_used:
@@ -155,6 +159,29 @@ def save_audit(state: DebateState, run_dir: Path) -> Path:
     return path
 
 
+def save_clause_ledger(state: DebateState, run_dir: Path) -> Path:
+    path = run_dir / "clauses.json"
+    treaty = state.get("treaty")
+    clauses = treaty.clauses if treaty else []
+    data = []
+    for c in clauses:
+        data.append({
+            "id": c.id,
+            "text": c.text,
+            "proposed_by": c.proposed_by,
+            "proposed_round": c.proposed_round,
+            "resolved_round": c.resolved_round,
+            "status": c.status.value,
+            "supporters": list(c.supporters),
+            "objectors": list(c.objectors),
+            "amendments": list(c.amendments),
+            "supersedes": c.supersedes,
+        })
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2, default=str)
+    return path
+
+
 def save_summary(state: DebateState, run_dir: Path) -> Path:
     path = run_dir / "summary.md"
     scenario = state["scenario"]
@@ -200,5 +227,6 @@ def save_all_outputs(state: DebateState, run_dir: Path) -> dict[str, Path]:
         "treaty": save_treaty(state, run_dir),
         "scorecards": save_scorecards(state, run_dir),
         "audit": save_audit(state, run_dir),
+        "clauses": save_clause_ledger(state, run_dir),
         "summary": save_summary(state, run_dir),
     }

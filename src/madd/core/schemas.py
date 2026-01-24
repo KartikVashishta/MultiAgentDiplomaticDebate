@@ -114,9 +114,12 @@ class CountryScore(BaseModel):
     country: str
     score: float = Field(..., ge=0, le=10)
     reasoning: str = ""
-    diplomatic_effectiveness: Optional[float] = None
-    strategic_alignment: Optional[float] = None
-    treaty_contribution: Optional[float] = None
+    diplomatic_effectiveness: float = Field(default=0.0, ge=0, le=10)
+    negotiation_willingness: float = Field(default=0.0, ge=0, le=10)
+    communication_clarity: float = Field(default=0.0, ge=0, le=10)
+    treaty_contribution: float = Field(default=0.0, ge=0, le=10)
+    statement_truncated: bool = False
+    truncation_note: Optional[str] = None
 
 
 class RoundScorecard(BaseModel):
@@ -124,9 +127,17 @@ class RoundScorecard(BaseModel):
     scores: list[CountryScore] = Field(default_factory=list)
     rankings: list[str] = Field(default_factory=list)
     summary: str = ""
+    summary_truncated: bool = False
     clauses_proposed: int = 0
     clauses_accepted: int = 0
     clauses_rejected: int = 0
+    clauses_proposed_this_round: int = 0
+    clauses_accepted_this_round: int = 0
+    clauses_rejected_this_round: int = 0
+    clauses_accepted_cumulative: int = 0
+    clauses_rejected_cumulative: int = 0
+    clauses_pending_cumulative: int = 0
+    clauses_total_unique_cumulative: int = 0
 
 
 class AuditSeverity(str, Enum):
@@ -160,4 +171,6 @@ class DebateMessage(BaseModel):
     acceptance_conditions: list[str] = Field(default_factory=list)
     red_lines: list[str] = Field(default_factory=list)
     references_used: list[str] = Field(default_factory=list)
+    is_truncated: bool = False
+    truncation_note: Optional[str] = None
     timestamp: datetime = Field(default_factory=_utc_now)

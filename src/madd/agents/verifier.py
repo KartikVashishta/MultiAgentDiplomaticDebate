@@ -1,4 +1,5 @@
 from typing import cast
+import hashlib
 import re
 
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -41,12 +42,62 @@ FACTUAL_KEYWORDS = [
     "mmacc",
 ]
 
+LEADER_TITLES = [
+    "president",
+    "prime minister",
+    "king",
+    "queen",
+    "chancellor",
+    "emperor",
+]
+
 
 def _requires_citation(text: str) -> bool:
     lowered = text.lower()
     if re.search(r"\d", lowered):
         return True
     return any(keyword in lowered for keyword in FACTUAL_KEYWORDS)
+
+
+def _mentions_named_leader(text: str) -> bool:
+    lowered = text.lower()
+    for title in LEADER_TITLES:
+        if title in lowered:
+            return True
+    return False
+
+
+def _format_facts(profile) -> str:
+    parts = []
+    gdp = profile.facts.economy.gdp_usd_billions
+    if gdp is None:
+        parts.append("GDP: Unknown")
+    else:
+        parts.append(f"GDP: {gdp}B")
+    leaders = profile.facts.current_leaders
+    if leaders:
+        parts.append(f"Leaders: {leaders}")
+    return ", ".join(parts)
+
+
+def _dedupe_findings(findings: list[AuditFinding]) -> list[AuditFinding]:
+    seen = set()
+    unique: list[AuditFinding] = []
+    for f in findings:
+        evidence = [e.strip().lower() for e in (f.evidence or [])]
+        key = "|".join([
+            f.country or "",
+            str(f.round_number or ""),
+            f.category or "",
+            f.description or "",
+            "|".join(sorted(evidence)),
+        ])
+        digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
+        if digest in seen:
+            continue
+        seen.add(digest)
+        unique.append(f)
+    return unique
 
 
 def verify_claims(state: DebateState) -> list[AuditFinding]:
@@ -139,11 +190,12 @@ Return findings with:
 - evidence: list of specific quotes showing the issue"""
 
     context = ""
+    message_map = {m.country: m for m in messages}
     for m in messages:
         profile = state["profiles"].get(m.country)
         facts = ""
         if profile:
-            facts = f"GDP: {profile.facts.economy.gdp_usd_billions}B, Leaders: {profile.facts.current_leaders}"
+            facts = _format_facts(profile)
         prior_statements = [
             p for p in all_messages
             if p.country == m.country and p.round_number < current_round
@@ -172,6 +224,9 @@ Check for contradictions and inconsistencies only (unsupported claims already ch
         
         severity_map = {"info": AuditSeverity.INFO, "warning": AuditSeverity.WARNING, "error": AuditSeverity.ERROR}
         for f in output.findings:
+            msg = message_map.get(f.country or "")
+            if "leader" in (f.description or "").lower() and msg and not _mentions_named_leader(msg.public_statement):
+                continue
             findings.append(AuditFinding(
                 severity=severity_map.get(f.severity.lower(), AuditSeverity.INFO),
                 category=f.category or "general",
@@ -190,4 +245,4 @@ Check for contradictions and inconsistencies only (unsupported claims already ch
             evidence=[],
         ))
     
-    return findings
+    return _dedupe_findings(findings)

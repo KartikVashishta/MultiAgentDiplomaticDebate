@@ -1,25 +1,23 @@
-name: 'Arctic Resource Exploitation'
-description: |
-  As climate change melts Arctic ice, nations vie for control over newly accessible resources and shipping routes.
-  This scenario focuses on negotiating an agreement that addresses territorial claims, sustainable development,
-  and environmental safeguards while preventing potential conflicts over oil, gas, and minerals.
+name: 'Greenland Security and Critical Minerals'
+description: |-
+  With Greenland's strategic location and critical-minerals potential drawing intensified attention, Denmark and the United States negotiate an updated framework covering defense access, investment rules, and strict safeguards.
+  The aim is to strengthen regional security while ensuring sustainable development, transparency, and robust environmental and community protections.
 
 countries:
-  - Russia
-  - Canada
-  - Norway
+  - Denmark
+  - United States
 
 max_rounds: 3
 
 agenda:
-  - topic: 'Territorial claims and extended continental shelves'
-    description: 'Resolving overlapping claims to Arctic seabed and waters'
+  - topic: 'Defense access and updated basing arrangements'
+    description: 'Clarifying U.S./NATO presence, reviewing the 1951 defense framework, and setting de-escalation and notification protocols'
     priority: 1
 
-  - topic: 'Resource extraction and sharing mechanisms'
-    description: 'Establishing rules for mining, drilling, and revenue distribution'
+  - topic: 'Critical minerals investment and supply-chain guarantees'
+    description: 'Rules for licensing, financing, local value creation, and offtake for rare earths/technology metals while managing strategic competition'
     priority: 2
 
-  - topic: 'Environmental protection and climate monitoring'
-    description: 'Implementing joint measures to preserve the Arctic ecosystem'
+  - topic: 'Environmental, Indigenous, and community safeguards'
+    description: 'Shared environmental-impact standards, ice/climate monitoring, and consultation mechanisms to protect fragile ecosystems and local communities'
     priority: 3

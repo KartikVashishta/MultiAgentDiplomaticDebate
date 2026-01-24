@@ -148,6 +148,7 @@ Generate your turn. For every votable clause ID listed, include exactly one vote
         strict=settings.strict_votes,
     )
     
+    is_truncated, trunc_note = _detect_truncation(output.public_statement)
     return DebateMessage(
         round_number=current_round,
         country=country_name,
@@ -158,6 +159,8 @@ Generate your turn. For every votable clause ID listed, include exactly one vote
         acceptance_conditions=output.acceptance_conditions,
         red_lines=output.red_lines,
         references_used=references,
+        is_truncated=is_truncated,
+        truncation_note=trunc_note,
         timestamp=datetime.now(timezone.utc),
     )
 
@@ -205,6 +208,17 @@ def _normalize_citation_id(raw_id: str) -> str:
         cid = cid[1:-1]
     cid = cid.strip().strip(",.;")
     return cid
+
+
+def _detect_truncation(text: str) -> tuple[bool, str | None]:
+    if not text:
+        return False, None
+    lowered = text.lower()
+    if "truncated" in lowered:
+        return True, "Statement contains truncation marker"
+    if text and text[-1].isalnum() and not text.strip().endswith((".", "!", "?", "\"", "'")):
+        return True, "Statement appears cut off mid-sentence"
+    return False, None
 
 
 def _enforce_vote_policy(
