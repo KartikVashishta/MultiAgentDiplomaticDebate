@@ -1,0 +1,13 @@
+[
+  {
+    "severity": "warning",
+    "category": "unsupported_claim",
+    "description": "United States made factual/legal statements without citations",
+    "country": "United States",
+    "round_number": 2,
+    "evidence": [
+      "Statement snippet: \"Representing NATO delegations, we propose a practical, sovereignty\u2011respecting approach to Arctic security that emphasizes clear procedures and local p...\"",
+      "references_used: []"
+    ]
+  }
+]

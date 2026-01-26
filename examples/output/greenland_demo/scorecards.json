@@ -1,0 +1,131 @@
+[
+  {
+    "round_number": 1,
+    "scores": [
+      {
+        "country": "Denmark",
+        "score": 7.0,
+        "reasoning": "Denmark sets a cooperative, sovereignty-respecting tone and prioritizes Greenlandic self-determination, environmental protection, and sustainable local benefits. This frames the talks constructively and protects domestic/constitutional obligations. However, Denmark\u2019s submission is high-level and lacks concrete mechanisms, timelines, or verification measures to operationalize those principles, so its practical treaty contribution is limited in this round.",
+        "diplomatic_effectiveness": 7.0,
+        "negotiation_willingness": 7.0,
+        "communication_clarity": 6.0,
+        "treaty_contribution": 6.0,
+        "statement_truncated": false,
+        "truncation_note": null
+      },
+      {
+        "country": "United States",
+        "score": 8.5,
+        "reasoning": "The U.S. combines respect for sovereignty with concrete, implementable operational proposals \u2014 distinguishing temporary access from permanent basing, proposing joint notification/deconfliction timelines, and a 24/7 hotline plus inspection regime. Those detailed measures increase clarity and make agreement more actionable. Slight deduction because the U.S. text is truncated and it could more explicitly address Greenlandic environmental/economic protections and self-determination safeguards.",
+        "diplomatic_effectiveness": 8.5,
+        "negotiation_willingness": 8.5,
+        "communication_clarity": 8.5,
+        "treaty_contribution": 8.0,
+        "statement_truncated": false,
+        "truncation_note": null
+      }
+    ],
+    "rankings": [
+      "United States",
+      "Denmark"
+    ],
+    "summary": "Both parties opened the round constructively. Denmark emphasized sovereignty, Greenlandic self-determination, and environmental/local benefits but stayed at a higher, less operational level. The United States paired respect for sovereignty with concrete procedural proposals (definitions, timelines, hotline, inspections), making its contribution more actionable. Next steps: Denmark should respond to U.S. operational proposals with specific safeguards, timelines, and verification mechanisms that protect Greenlandic interests; the U.S. should explicitly incorporate environmental and self-determination guarantees into those mechanisms.",
+    "summary_truncated": false,
+    "clauses_proposed": 6,
+    "clauses_accepted": 0,
+    "clauses_rejected": 0,
+    "clauses_proposed_this_round": 6,
+    "clauses_accepted_this_round": 0,
+    "clauses_rejected_this_round": 0,
+    "clauses_accepted_cumulative": 0,
+    "clauses_rejected_cumulative": 0,
+    "clauses_pending_cumulative": 6,
+    "clauses_total_unique_cumulative": 6
+  },
+  {
+    "round_number": 2,
+    "scores": [
+      {
+        "country": "Denmark",
+        "score": 8.0,
+        "reasoning": "Denmark balances alliance commitments with strong emphasis on Greenlandic self-determination, environmental protection, and community well\u2011being. The statement supports concrete safeguards (operational distinction between temporary access and permanent basing) and endorses deconfliction measures, showing practical diplomacy while insisting on sovereignty and consultation.",
+        "diplomatic_effectiveness": 8.0,
+        "negotiation_willingness": 8.0,
+        "communication_clarity": 7.0,
+        "treaty_contribution": 7.0,
+        "statement_truncated": false,
+        "truncation_note": null
+      },
+      {
+        "country": "United States",
+        "score": 9.0,
+        "reasoning": "The U.S. (on behalf of NATO delegations) offers a practical, implementable framework emphasizing sovereignty-respecting procedures, predictable notification timelines, and a continuous deconfliction channel. The proposal is operational, forward-leaning, and explicitly seeks Denmark/Greenland endorsement \u2014 strong on concrete treaty-oriented measures and negotiation leadership.",
+        "diplomatic_effectiveness": 8.0,
+        "negotiation_willingness": 9.0,
+        "communication_clarity": 8.0,
+        "treaty_contribution": 9.0,
+        "statement_truncated": false,
+        "truncation_note": null
+      }
+    ],
+    "rankings": [
+      "United States",
+      "Denmark"
+    ],
+    "summary": "Both actors are constructive and aligned on core items (distinguishing temporary access vs basing, deconfliction). The U.S. is slightly stronger on operational, implementable proposals and negotiation initiative; Denmark is notable for protecting sovereignty, Greenlandic consultation, and environmental/community safeguards.",
+    "summary_truncated": false,
+    "clauses_proposed": 12,
+    "clauses_accepted": 1,
+    "clauses_rejected": 0,
+    "clauses_proposed_this_round": 12,
+    "clauses_accepted_this_round": 1,
+    "clauses_rejected_this_round": 0,
+    "clauses_accepted_cumulative": 1,
+    "clauses_rejected_cumulative": 0,
+    "clauses_pending_cumulative": 17,
+    "clauses_total_unique_cumulative": 18
+  },
+  {
+    "round_number": 3,
+    "scores": [
+      {
+        "country": "Denmark",
+        "score": 8.0,
+        "reasoning": "Denmark presented a focused, sovereignty\u2011centred position that seeks concrete, enforceable mechanisms and robust local oversight\u2014useful and constructive for durable agreements. The tone is firm but open to cooperation; however the statement is more condition\u2011heavy and less detailed on how it would operationalize consent or incentives for partners.",
+        "diplomatic_effectiveness": 8.0,
+        "negotiation_willingness": 7.0,
+        "communication_clarity": 8.0,
+        "treaty_contribution": 8.0,
+        "statement_truncated": false,
+        "truncation_note": null
+      },
+      {
+        "country": "United States",
+        "score": 9.0,
+        "reasoning": "The U.S. balanced strategic necessity with respect for sovereignty and self\u2011determination, proposing a pragmatic, legally grounded framework with consent, notification, de\u2011escalation, and commitments on critical\u2011minerals benefits and safeguards\u2014this advances negotiable, concrete options and lowers transaction costs for treaty formation.",
+        "diplomatic_effectiveness": 9.0,
+        "negotiation_willingness": 9.0,
+        "communication_clarity": 8.0,
+        "treaty_contribution": 9.0,
+        "statement_truncated": false,
+        "truncation_note": null
+      }
+    ],
+    "rankings": [
+      "United States",
+      "Denmark"
+    ],
+    "summary": "Both parties offer constructive, complementary positions: Denmark insists on strong safeguards for sovereignty, Greenlandic oversight, and enforceable mechanisms; the U.S. offers a pragmatic, legally framed pathway that recognizes those concerns while advancing defence access and responsible critical\u2011minerals development. The U.S. statement is slightly more facilitative of treatycraft; Denmark provides essential protective conditions that must be integrated into any durable agreement.",
+    "summary_truncated": false,
+    "clauses_proposed": 6,
+    "clauses_accepted": 3,
+    "clauses_rejected": 0,
+    "clauses_proposed_this_round": 6,
+    "clauses_accepted_this_round": 3,
+    "clauses_rejected_this_round": 0,
+    "clauses_accepted_cumulative": 4,
+    "clauses_rejected_cumulative": 0,
+    "clauses_pending_cumulative": 20,
+    "clauses_total_unique_cumulative": 24
+  }
+]

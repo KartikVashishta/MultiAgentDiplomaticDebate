@@ -1,128 +1,260 @@
 # Multi-Agent Diplomatic Debate (MADD)
 
-A LangGraph-based simulation for orchestrating multi-agent diplomatic debates. Countries negotiate treaties while a judge evaluates and a verifier checks claims.
+**LangGraph pipeline that turns a scenario into a structured negotiation -> treaty -> audit trail.**
+
+- **Negotiation engine** — round-based proposals, amendments, voting with coalition dynamics (WIP)
+- **Treaty-grade outputs** — treaty + annexes + transcript + structured citations
+- **Auditable by design** — claim verification, contradiction detection, enforceability checks
+- **Pluggable** — separate model configs for research / debate / judge / verifier
+
+![Demo](assets/demo.gif)
 
 ---
 
-## Quick Start
+## Why MADD?
+
+LLM debate demos are easy; _auditable negotiation_ is hard.
+
+MADD is a reference implementation for turning multi-agent dialogue into **(1) a structured agreement** and **(2) a verifiable trail**: what was proposed, why it was accepted, and which claims were supported by sources.
+
+Use cases:
+
+- **Benchmark harness** for multi-agent negotiation research
+- **Policy/treaty drafting** workflow with compliance audit
+- **LangGraph reference project** for complex agent orchestration
+
+---
+
+## Try it in 2 minutes
 
 ```bash
-# Install
-pip install -e ".[dev]"
+git clone https://github.com/KartikVashishta/MultiAgentDiplomaticDebate
+cd MultiAgentDiplomaticDebate
 
-# Run simulation
-madd data/scenarios/demo.yaml
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
 
-# Run tests
-pytest tests/
+export OPENAI_API_KEY="sk-..."
+
+madd examples/scenarios/greenland.yaml --rounds 3
 ```
 
 ---
 
-## Features
+## What you get
 
-- **LangGraph pipeline**: Modular graph with profiles → debate rounds → treaty compilation → verification → judging
-- **Role-based models**: Separate model configs for research, turns, judging, verification
-- **Web search with citations**: GA OpenAI web_search tool with caching and per-field citations
-- **Structured outputs**: Pydantic schemas for all data (profiles, messages, treaties, scorecards, audits)
-- **Transcript with references**: Citation IDs resolved to sources in output
-- **Scenario-aware profiles**: Cached profiles keyed by scenario to avoid stale citations
+### transcript.md
+
+```markdown
+## Round 1 - Denmark
+
+Denmark and the United States open talks with mutual respect for sovereignty
+and shared security responsibilities in the Arctic. We welcome cooperative
+steps to strengthen regional defense while ensuring Greenlandic self-determination...
+
+We ask the U.S. to provide an initial written outline of intended defense
+footprints within 45 days. As an offer, Denmark will consider streamlined
+procedural approvals for projects meeting licensing and environmental benchmarks.
+
+_Sources: [cite_01c8c2022e], [cite_cbde2a634a]_
+
+**Proposed Clauses:**
+
+- Clause 1 (Defense Access & Basing): Define 'temporary access' as deployments
+  under 180 days per calendar year...
+```
+
+### treaty.md
+
+```markdown
+## Accepted Clauses
+
+**C3** (proposed by Denmark)
+
+> Environmental, Indigenous & Monitoring Safeguards: Mandatory ESIA/EIA
+> consistent with international best practice; independent verification.
+> No-go Zones: Protect areas designated by Greenlandic authorities.
+> FPIC for projects affecting Inuit lands.
+> Grievance Mechanism: Independent ombuds with binding orders.
+
+**C16** (proposed by United States)
+
+> Cyber, Technology Safeguards & Incident Reporting: Operators must report
+> cybersecurity incidents within 24 hours. Annual independent security audits.
+```
+
+### sources.json
+
+```json
+[
+  {
+    "id": "cite_01c8c2022e",
+    "title": "www.defense.gov",
+    "url": "https://www.defense.gov/News/...",
+    "topic": "history",
+    "used_in": ["Round1-Denmark", "Round2-Denmark"]
+  },
+  {
+    "id": "cite_cbde2a634a",
+    "title": "www.nato.int",
+    "url": "https://www.nato.int/...",
+    "topic": "defense_posture"
+  }
+]
+```
+
+### audit.json
+
+```json
+[
+  {
+    "severity": "warning",
+    "category": "unsupported_claim",
+    "description": "United States made factual/legal statements without citations",
+    "country": "United States",
+    "round_number": 2,
+    "evidence": ["Statement snippet: ...", "references_used: []"]
+  }
+]
+```
+
+Full outputs: [examples/output/greenland_demo/](examples/output/greenland_demo/)
 
 ---
 
-## Project Structure
+## Architecture
 
+```mermaid
+flowchart LR
+    Scenario[Scenario YAML] --> Profiles[Profile Generation]
+    Profiles --> |web search + cache| Debate[Debate Rounds]
+    Debate --> Treaty[Treaty Compiler]
+    Treaty --> Verify[Verifier]
+    Verify --> Judge[Judge]
+    Judge --> |continue| Debate
+    Judge --> |finalize| Refine[Treaty Refiner]
+    Refine --> Output[Outputs]
 ```
-├── src/madd/              # Main package (canonical)
-│   ├── agents/            # Country, Judge, Verifier, Researcher agents
-│   ├── core/              # Schemas, config, state, graph, scenario
-│   ├── stores/            # Profile and run output persistence
-│   └── tools/             # Web search with caching
-├── src/legacy/            # Deprecated AgentScope implementation
-├── data/
-│   ├── scenarios/         # YAML scenario definitions
-│   └── country_profiles/  # Cached profile JSON
-├── output/                # Run outputs (timestamped dirs)
-└── tests/                 # Pytest tests
-```
+
+| Step                | What happens                                            | Code                                                            |
+| ------------------- | ------------------------------------------------------- | --------------------------------------------------------------- |
+| **Scenario**        | Load countries, agenda, constraints                     | [`core/scenario.py`](src/madd/core/scenario.py)                 |
+| **Profile Gen**     | Web search per country, cache with citations            | [`agents/researcher.py`](src/madd/agents/researcher.py)         |
+| **Debate**          | Each country proposes clauses, votes, issues statements | [`agents/country.py`](src/madd/agents/country.py)               |
+| **Treaty Compiler** | Resolve votes (majority), track amendments              | [`core/graph.py`](src/madd/core/graph.py)                       |
+| **Verifier**        | Check unsupported claims, contradictions                | [`agents/verifier.py`](src/madd/agents/verifier.py)             |
+| **Judge**           | Score diplomatic effectiveness per round                | [`agents/judge.py`](src/madd/agents/judge.py)                   |
+| **Refiner**         | Compile accepted clauses into treaty + annexes          | [`agents/treaty_refiner.py`](src/madd/agents/treaty_refiner.py) |
+
+**Web search**: Uses OpenAI's `web_search` tool via the Responses API. Results are cached per-scenario to avoid redundant calls. Pluggable via `src/madd/tools/web_search.py`.
 
 ---
 
-## CLI Usage
+## Configuration
+
+### Environment variables
 
 ```bash
-# Run with default settings
-madd data/scenarios/demo.yaml
+OPENAI_API_KEY="sk-..."           # Required
 
-# Override max rounds
-madd data/scenarios/demo.yaml --rounds 5
+# Model overrides (default: gpt-5-mini)
+MADD_TURN_MODEL="gpt-5-mini"      # Country agent turns
+MADD_JUDGE_MODEL="gpt-5-mini"     # Scoring
+MADD_VERIFY_MODEL="gpt-5-mini"    # Claim verification
+MADD_RESEARCH_MODEL="gpt-5-mini"  # Profile research
 
-# Custom output directory
-madd data/scenarios/demo.yaml --output-dir my_output
+# Behavior
+MADD_SEARCH_CACHE="true"          # Cache web search results
+MADD_STRICT_VOTES="false"         # Error on missing votes
 ```
 
-## Golden Run Example
+### Scenario YAML
+
+```yaml
+name: 'Greenland Security and Critical Minerals'
+description: |-
+  With Greenland's strategic location and critical-minerals potential...
+
+countries:
+  - Denmark
+  - United States
+
+max_rounds: 3
+
+agenda:
+  - topic: 'Defense access and updated basing arrangements'
+    description: 'Clarifying U.S./NATO presence, reviewing the 1951 defense framework'
+    priority: 1
+
+  - topic: 'Critical minerals investment and supply-chain guarantees'
+    description: 'Rules for licensing, financing, local value creation'
+    priority: 2
+
+  - topic: 'Environmental, Indigenous, and community safeguards'
+    description: 'Shared environmental-impact standards, consultation mechanisms'
+    priority: 3
+```
+
+### CLI
 
 ```bash
-# South China Sea demo (3 rounds)
-madd data/scenarios/demo.yaml --rounds 3
+madd <scenario.yaml>              # Run with defaults
+madd <scenario.yaml> --rounds 5   # Override max rounds
+madd <scenario.yaml> --output-dir ./my_output
 ```
 
 ---
 
-## Environment Variables
+## Evaluation
 
-| Variable              | Default      | Description                                                    |
-| --------------------- | ------------ | -------------------------------------------------------------- |
-| `OPENAI_API_KEY`      | (required)   | OpenAI API key                                                 |
-| `MADD_RESEARCH_MODEL` | `gpt-5-mini` | Model for profile research                                     |
-| `MADD_TURN_MODEL`     | `gpt-5-mini` | Model for country turns                                        |
-| `MADD_JUDGE_MODEL`    | `gpt-5-mini` | Model for scoring                                              |
-| `MADD_VERIFY_MODEL`   | `gpt-5-mini` | Model for verification                                         |
-| `MADD_SEARCH_MODEL`   | `gpt-5-mini` | Model for web search                                           |
-| `MADD_SEARCH_CACHE`   | `true`       | Enable web search caching                                      |
-| `MADD_STRICT_VOTES`   | `false`      | Enforce votes for all votable clauses (error on missing/extra) |
+Basic metrics tracked per run:
+
+| Metric                  | Description                                       |
+| ----------------------- | ------------------------------------------------- |
+| **Unsupported claims**  | Statements without citation references            |
+| **Treaty completeness** | Accepted clauses with enforcement + timelines     |
+| **Negotiation outcome** | Accepted/rejected/pending clauses per agenda item |
+| **Score trajectory**    | Per-country diplomatic effectiveness over rounds  |
+
+See `scorecards.json` and `audit.json` in output.
 
 ---
 
-## Output Files
+## Project structure
 
-Each run produces `output/run_YYYYMMDD_HHMMSS/`:
+```
+├── src/madd/
+│   ├── agents/        # Country, Judge, Verifier, Researcher, Treaty Refiner
+│   ├── core/          # Schemas, config, state, graph, scenario router
+│   ├── stores/        # Profile cache and run output persistence
+│   └── tools/         # Web search with caching
+├── examples/
+│   ├── scenarios/     # YAML scenario definitions
+│   └── output/        # Committed demo outputs
+├── tests/             # Pytest tests
+└── assets/            # Demo visuals
+```
 
-| File              | Description                     |
-| ----------------- | ------------------------------- |
-| `state.json`      | Full state snapshot             |
-| `sources.json`    | All citations used              |
-| `transcript.md`   | Debate with citation references |
-| `treaty.md`       | Final treaty draft              |
-| `scorecards.json` | Round-by-round scores           |
-| `audit.json`      | Verifier findings               |
-| `summary.md`      | Executive summary               |
+---
+
+## Roadmap
+
+- [ ] Streaming + live viewer
+- [ ] 3+ countries + coalition dynamics
+- [ ] Scenario library + evaluation metrics
+- [ ] Local models (vLLM / Ollama)
+- [ ] Human-in-the-loop clause drafting
+- [ ] Web UI scenario builder
 
 ---
 
 ## Development
 
 ```bash
-# Install with dev deps
 pip install -e ".[dev]"
-
-# Run tests
 pytest tests/ -v
-
-# Lint
 ruff check src/
 ```
-
----
-
-## Legacy Files
-
-The following files are from the deprecated AgentScope implementation:
-
-- `run.py` - Use `madd` CLI instead
-- `requirements.txt` - Use `pip install -e .` instead
-- `src/legacy/` - Old agents, memory, prompts, etc.
 
 ---
 
