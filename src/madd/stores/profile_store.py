@@ -3,12 +3,15 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from madd.core.config import get_settings
 from madd.core.schemas import CountryProfile
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from madd.core.scenario_router import RouterPlan
 
 
 def _normalize_name(name: str) -> str:
@@ -34,12 +37,12 @@ def get_profile_path(country_name: str, scenario_key: str | None = None) -> Path
     return base_dir / f"{_normalize_name(country_name)}.json"
 
 
-def load_profile(country_name: str, scenario_key: str | None = None) -> Optional[CountryProfile]:
+def load_profile(country_name: str, scenario_key: str | None = None) -> CountryProfile | None:
     path = get_profile_path(country_name, scenario_key)
     if not path.exists():
         return None
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
         return CountryProfile.model_validate(data)
     except Exception:
@@ -70,7 +73,7 @@ def ensure_profile(
         logger.warning(f"Cached profile for {country_name} has no citations; regenerating.")
     
     profile = None
-    for attempt in range(2):
+    for _attempt in range(2):
         profile = generate_profile(
             country_name,
             scenario_description,

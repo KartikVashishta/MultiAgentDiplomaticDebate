@@ -1,10 +1,10 @@
-from typing import cast
 import hashlib
 import re
+from typing import Any, cast
 
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ValidationError
 
 from madd.core.config import get_settings
 from madd.core.schemas import AuditFinding, AuditSeverity
@@ -16,11 +16,11 @@ class FindingOutput(BaseModel):
     category: str = ""
     description: str = ""
     country: str = ""
-    evidence: list[str] = []
+    evidence: list[str] = Field(default_factory=list)
 
 
 class VerifierLLMOutput(BaseModel):
-    findings: list[FindingOutput] = []
+    findings: list[FindingOutput | dict[str, Any] | str] = Field(default_factory=list)
 
 
 BASE_FACTUAL_KEYWORDS = [
@@ -55,6 +55,14 @@ LEADER_TITLES = [
     "emperor",
 ]
 
+SUSPICIOUS_MARKERS = [
+    "</analysis",
+    "to=functions",
+    "end_function_call",
+    "tool call is done",
+    "not_user_visible_exception",
+]
+
 
 def _requires_citation(text: str, keywords: list[str]) -> bool:
     lowered = text.lower()
@@ -65,10 +73,35 @@ def _requires_citation(text: str, keywords: list[str]) -> bool:
 
 def _mentions_named_leader(text: str) -> bool:
     lowered = text.lower()
-    for title in LEADER_TITLES:
-        if title in lowered:
-            return True
-    return False
+    return any(title in lowered for title in LEADER_TITLES)
+
+
+def _coerce_finding_output(
+    finding: FindingOutput | dict[str, Any] | str,
+) -> FindingOutput | None:
+    if isinstance(finding, FindingOutput):
+        return finding
+    if isinstance(finding, dict):
+        try:
+            return FindingOutput.model_validate(finding)
+        except ValidationError:
+            return None
+    return None
+
+
+def _sanitize_generated_text(text: str, *, max_chars: int) -> str:
+    cleaned = text.replace("\u3011", " ").replace("\u3010", " ")
+    lowered = cleaned.lower()
+    cutoff = len(cleaned)
+    for marker in SUSPICIOUS_MARKERS:
+        idx = lowered.find(marker)
+        if idx != -1:
+            cutoff = min(cutoff, idx)
+    cleaned = cleaned[:cutoff]
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" \t\r\n\"'")
+    if len(cleaned) > max_chars:
+        cleaned = cleaned[:max_chars].rstrip() + "..."
+    return cleaned
 
 
 def _format_facts(profile) -> str:
@@ -231,18 +264,44 @@ Check for contradictions and inconsistencies only (unsupported claims already ch
         ])
         output = cast(VerifierLLMOutput, result)
         
-        severity_map = {"info": AuditSeverity.INFO, "warning": AuditSeverity.WARNING, "error": AuditSeverity.ERROR}
-        for f in output.findings:
-            msg = message_map.get(f.country or "")
-            if "leader" in (f.description or "").lower() and msg and not _mentions_named_leader(msg.public_statement):
+        severity_map = {
+            "info": AuditSeverity.INFO,
+            "warning": AuditSeverity.WARNING,
+            "error": AuditSeverity.ERROR,
+        }
+        for raw_finding in output.findings:
+            finding = _coerce_finding_output(raw_finding)
+            if not finding:
+                continue
+            description = _sanitize_generated_text(finding.description or "", max_chars=500)
+            country = _sanitize_generated_text(finding.country or "", max_chars=80)
+            category = _sanitize_generated_text(finding.category or "general", max_chars=60) or "general"
+            severity_key = _sanitize_generated_text(finding.severity or "", max_chars=20).lower()
+            evidence = [
+                cleaned
+                for cleaned in (
+                    _sanitize_generated_text(item, max_chars=280)
+                    for item in (finding.evidence or [])
+                    if isinstance(item, str)
+                )
+                if cleaned
+            ]
+            if not description:
+                continue
+            msg = message_map.get(country or "")
+            if (
+                "leader" in description.lower()
+                and msg
+                and not _mentions_named_leader(msg.public_statement)
+            ):
                 continue
             findings.append(AuditFinding(
-                severity=severity_map.get(f.severity.lower(), AuditSeverity.INFO),
-                category=f.category or "general",
-                description=f.description,
-                country=f.country or None,
+                severity=severity_map.get(severity_key, AuditSeverity.INFO),
+                category=category,
+                description=description,
+                country=country or None,
                 round_number=current_round,
-                evidence=f.evidence,
+                evidence=evidence,
             ))
     except Exception as e:
         print(f"    Verifier LLM error: {e}")

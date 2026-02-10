@@ -1,13 +1,12 @@
 import logging
 from typing import cast
-from datetime import datetime, timezone
 
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
 from madd.core.config import get_settings
-from madd.core.schemas import RoundScorecard, CountryScore
+from madd.core.schemas import CountryScore, RoundScorecard
 from madd.core.state import DebateState
 
 logger = logging.getLogger(__name__)

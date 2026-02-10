@@ -1,13 +1,13 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
-from madd.core.state import DebateState
 from madd.core.schemas import Citation
+from madd.core.state import DebateState
 
 
 def create_run_dir(base_dir: str = "output") -> Path:
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     run_dir = Path(base_dir) / f"run_{ts}"
     run_dir.mkdir(parents=True, exist_ok=True)
     return run_dir
@@ -194,7 +194,7 @@ def save_summary(state: DebateState, run_dir: Path) -> Path:
     treaty = state.get("treaty")
     citations = collect_used_citations(state)
     
-    lines = [f"# Debate Summary\n\n"]
+    lines = ["# Debate Summary\n\n"]
     lines.append(f"**Scenario**: {scenario.name}\n\n")
     lines.append(f"**Countries**: {', '.join(scenario.countries)}\n\n")
     lines.append(f"**Rounds**: {state.get('round', 0)}\n\n")
@@ -207,7 +207,7 @@ def save_summary(state: DebateState, run_dir: Path) -> Path:
             lines.append(f"- **{score.country}**: {score.score}/10 - {score.reasoning}\n")
     
     if treaty:
-        lines.append(f"\n## Treaty Status\n\n")
+        lines.append("\n## Treaty Status\n\n")
         lines.append(f"- Accepted: {len(treaty.accepted_clauses)}\n")
         lines.append(f"- Pending: {len(treaty.pending_clauses)}\n")
     
