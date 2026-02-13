@@ -203,6 +203,15 @@ madd <scenario.yaml> --rounds 5   # Override max rounds
 madd <scenario.yaml> --output-dir ./my_output
 madd <scenario.yaml> --watch      # Show per-node progress updates while running
 madd <scenario.yaml> --print-summary  # Print final summary.md after completion
+madd-ui                          # Launch the web scenario studio at http://127.0.0.1:8000
+```
+
+### Scenario Studio
+
+Run a new case directly from the browser:
+
+```bash
+madd-ui --host 127.0.0.1 --port 8000
 ```
 
 ---
@@ -246,7 +255,7 @@ See `scorecards.json` and `audit.json` in output.
 - [ ] Scenario library + evaluation metrics
 - [ ] Local models (vLLM / Ollama)
 - [ ] Human-in-the-loop clause drafting
-- [ ] Web UI scenario builder
+- [x] Web UI scenario builder (minimal scenario studio)
 
 ---
 

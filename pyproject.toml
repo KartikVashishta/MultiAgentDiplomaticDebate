@@ -32,6 +32,7 @@ dev = [
 
 [project.scripts]
 madd = "madd.cli:main"
+madd-ui = "madd.ui.web:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
