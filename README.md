@@ -201,6 +201,8 @@ agenda:
 madd <scenario.yaml>              # Run with defaults
 madd <scenario.yaml> --rounds 5   # Override max rounds
 madd <scenario.yaml> --output-dir ./my_output
+madd <scenario.yaml> --watch      # Show per-node progress updates while running
+madd <scenario.yaml> --print-summary  # Print final summary.md after completion
 ```
 
 ---
