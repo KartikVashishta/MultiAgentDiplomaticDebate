@@ -2,15 +2,23 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from madd.core.config import get_settings
 from madd.core.schemas import Citation
 from madd.core.state import DebateState
 
 
-def create_run_dir(base_dir: str = "output") -> Path:
-    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-    run_dir = Path(base_dir) / f"run_{ts}"
-    run_dir.mkdir(parents=True, exist_ok=True)
-    return run_dir
+def create_run_dir(base_dir: str | Path | None = None) -> Path:
+    base_path = Path(base_dir or get_settings().output_dir)
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S_%f")
+    for attempt in range(1000):
+        suffix = "" if attempt == 0 else f"_{attempt:02d}"
+        run_dir = base_path / f"run_{ts}{suffix}"
+        try:
+            run_dir.mkdir(parents=True, exist_ok=False)
+            return run_dir
+        except FileExistsError:
+            continue
+    raise RuntimeError(f"Unable to allocate a unique run directory under {base_path}")
 
 
 def _serialize(val):

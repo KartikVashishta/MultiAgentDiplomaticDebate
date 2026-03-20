@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from functools import lru_cache
 
 from pydantic import Field
@@ -40,11 +41,24 @@ class Settings(BaseSettings):
     }
 
 
+class MissingRequiredConfigError(RuntimeError):
+    pass
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
 
 
+def require_openai_api_key(settings: Settings | None = None) -> Settings:
+    settings = settings or get_settings()
+    if not settings.openai_api_key.strip():
+        raise MissingRequiredConfigError(
+            "OPENAI_API_KEY is required to run MADD. Set it in your environment or .env file "
+            "before launching a debate."
+        )
+    return settings
+
+
 def current_year() -> int:
-    from datetime import datetime, timezone
-    return datetime.now(timezone.utc).year
+    return datetime.now(UTC).year

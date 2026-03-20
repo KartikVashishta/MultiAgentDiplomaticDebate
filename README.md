@@ -35,9 +35,12 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e .
 
 export OPENAI_API_KEY="sk-..."
+export MADD_OUTPUT_DIR="./output"
 
 madd examples/scenarios/greenland.yaml --rounds 3
 ```
+
+Contributor orientation: see `REPO_MAP.md` for the active-vs-legacy layout before changing code.
 
 ---
 
@@ -166,6 +169,7 @@ MADD_RESEARCH_MODEL="gpt-5-mini"  # Profile research
 # Behavior
 MADD_SEARCH_CACHE="true"          # Cache web search results
 MADD_STRICT_VOTES="false"         # Error on missing votes
+MADD_OUTPUT_DIR="output"          # Default base directory for generated run artifacts
 ```
 
 ### Scenario YAML
@@ -239,12 +243,15 @@ See `scorecards.json` and `audit.json` in output.
 │   ├── core/          # Schemas, config, state, graph, scenario router
 │   ├── stores/        # Profile cache and run output persistence
 │   └── tools/         # Web search with caching
+├── src/legacy/        # Reference-only older implementation; not the packaged app path
 ├── examples/
 │   ├── scenarios/     # YAML scenario definitions
 │   └── output/        # Committed demo outputs
 ├── tests/             # Pytest tests
 └── assets/            # Demo visuals
 ```
+
+For contributor navigation, start in `src/madd/` and use `REPO_MAP.md` for a quick architecture pass.
 
 ---
 

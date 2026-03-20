@@ -4,7 +4,11 @@ import sys
 import traceback
 from pathlib import Path
 
-from madd.core.config import get_settings
+from madd.core.config import (
+    MissingRequiredConfigError,
+    get_settings,
+    require_openai_api_key,
+)
 from madd.core.graph import build_graph
 from madd.core.scenario import load_scenario
 from madd.core.state import create_initial_state
@@ -12,6 +16,7 @@ from madd.stores.run_store import create_run_dir, save_all_outputs
 
 
 def build_parser() -> argparse.ArgumentParser:
+    settings = get_settings()
     parser = argparse.ArgumentParser(
         prog="madd",
         description="Multi-Agent Diplomatic Debate"
@@ -30,7 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("output"),
+        default=Path(settings.output_dir),
         help="Base output directory"
     )
     parser.add_argument(
@@ -51,23 +56,29 @@ def main():
     logging.basicConfig(level=logging.DEBUG if settings.debug else logging.INFO)
     parser = build_parser()
     args = parser.parse_args()
-    
+
+    try:
+        require_openai_api_key(settings)
+    except MissingRequiredConfigError as err:
+        print(f"Error: {err}", file=sys.stderr)
+        raise SystemExit(2) from err
+
     print(f"Loading scenario: {args.scenario}")
     scenario = load_scenario(args.scenario)
-    
-    if args.rounds:
+
+    if args.rounds is not None:
         scenario.max_rounds = args.rounds
-    
+
     print(f"Scenario: {scenario.name}")
     print(f"Countries: {', '.join(scenario.countries)}")
     print(f"Max rounds: {scenario.max_rounds}")
     print()
-    
+
     initial_state = create_initial_state(scenario)
-    
+
     print("Building graph...")
     graph = build_graph()
-    
+
     print("Running debate...\n")
     final_state = None
     try:
@@ -95,9 +106,9 @@ def main():
     
     if final_state:
         print("\nSaving outputs...")
-        run_dir = create_run_dir(str(args.output_dir))
+        run_dir = create_run_dir(args.output_dir)
         outputs = save_all_outputs(final_state, run_dir)
-        
+
         print(f"\nOutputs saved to: {run_dir}")
         for name, path in outputs.items():
             print(f"  - {name}: {path.name}")
@@ -109,7 +120,7 @@ def main():
                     print(Path(summary_path).read_text(encoding="utf-8"))
                 except OSError:
                     print("(Unable to read summary file)", file=sys.stderr)
-    
+
     print("\nDone!")
 
 

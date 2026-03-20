@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from madd.core.config import get_settings, require_openai_api_key
 from madd.core.graph import build_graph
 from madd.core.scenario import Scenario, load_scenario_from_text
 from madd.core.state import create_initial_state
@@ -33,9 +34,11 @@ class DebateRunResult:
 def run_scenario_from_yaml_text(
     yaml_text: str,
     *,
-    output_dir: Path | str = "output",
+    output_dir: Path | str | None = None,
     rounds: int | None = None,
 ) -> DebateRunResult:
+    settings = get_settings()
+    require_openai_api_key(settings)
     scenario = load_scenario_from_text(yaml_text)
     if rounds is not None:
         scenario = scenario.model_copy(update={"max_rounds": rounds})
@@ -49,7 +52,7 @@ def run_scenario_from_yaml_text(
     if final_state is None:
         raise RuntimeError("Debate run did not produce a final state")
 
-    run_dir = create_run_dir(str(output_dir))
+    run_dir = create_run_dir(output_dir)
     outputs = save_all_outputs(final_state, run_dir)
     return DebateRunResult(scenario=scenario, run_dir=run_dir, outputs=outputs)
 
@@ -367,6 +370,7 @@ def _make_handler(output_root: Path):
 
 
 def build_parser() -> argparse.ArgumentParser:
+    settings = get_settings()
     parser = argparse.ArgumentParser(
         prog="madd-ui",
         description="Run the MADD web UI to draft and execute a scenario",
@@ -385,7 +389,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("output"),
+        default=Path(settings.output_dir),
         help="Base output directory",
     )
     parser.add_argument(

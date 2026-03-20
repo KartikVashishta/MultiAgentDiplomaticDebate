@@ -1,10 +1,15 @@
-import pytest
-import json
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from datetime import UTC, datetime
+from types import SimpleNamespace
+from unittest.mock import patch
 
-from madd.stores.profile_store import load_profile, save_profile, get_profile_path, make_scenario_key
-from madd.core.schemas import CountryProfile, CountryFacts, CountryStrategy
+from madd.core.schemas import CountryFacts, CountryProfile
+from madd.stores.profile_store import (
+    get_profile_path,
+    load_profile,
+    make_scenario_key,
+    save_profile,
+)
+from madd.stores.run_store import create_run_dir
 
 
 def test_profile_path():
@@ -38,3 +43,33 @@ def test_load_nonexistent(tmp_path):
         
         loaded = load_profile("NonExistent")
         assert loaded is None
+
+
+def test_create_run_dir_uses_configured_default(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "madd.stores.run_store.get_settings",
+        lambda: SimpleNamespace(output_dir=str(tmp_path)),
+    )
+
+    run_dir = create_run_dir()
+
+    assert run_dir.parent == tmp_path
+    assert run_dir.exists()
+
+
+def test_create_run_dir_is_collision_safe(tmp_path, monkeypatch):
+    fixed_now = datetime(2026, 3, 21, 12, 0, 0, 123456, tzinfo=UTC)
+
+    class _FixedDatetime:
+        @staticmethod
+        def now(_tz):
+            return fixed_now
+
+    monkeypatch.setattr("madd.stores.run_store.datetime", _FixedDatetime)
+
+    first = create_run_dir(tmp_path)
+    second = create_run_dir(tmp_path)
+
+    assert first != second
+    assert first.exists()
+    assert second.exists()
